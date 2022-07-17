@@ -104,6 +104,23 @@ class Conv2dSame(torch.nn.Module):
         return self.net(x)
 
 
+class ResNet50(nn.Module):
+    
+    def __init__(self, n_classes, pretrained=true):
+        super(ResNet50, self).__init__()
+        if pretrained:
+            resnet = torchvision.models.resnet50(weights=ResNet50_Weights.DEFAULT)
+        else:
+            resnet = torchvision.models.resnet50(weights=None)
+        resnet.fc = nn.Sequential(
+            nn.Dropout(p=0.2), 
+            nn.Linear(in_features=resnet.fc.in_features, out_features=nn_classes))
+        self.base_model = resnet
+
+    def forward(self, x):
+        return self.base_model(x)
+
+
 class Resblock(nn.Module):
 
     def __init__(self, in_channels, filters, kernel_size, stride=1, preactivated=True, block_id=1, name=''):
@@ -201,7 +218,7 @@ class Resblock(nn.Module):
 
 class BirdNET(nn.Module):
     
-    def __init__(self):
+    def __init__(self, n_classes):
         super(BirdNET, self).__init__()
 
         # Pre-processing stage
@@ -241,7 +258,7 @@ class BirdNET(nn.Module):
         self.bn4 = nn.BatchNorm2d(int(FILTERS[-1] * RESNET_K * 2))
         self.drop2 = nn.Dropout()
         # Class Convolution
-        self.conv4 = nn.Conv2d(in_channels=int(FILTERS[-1] * RESNET_K * 2), out_channels=LEN_CLASSES, kernel_size=1)
+        self.conv4 = nn.Conv2d(in_channels=int(FILTERS[-1] * RESNET_K * 2), out_channels=n_classes, kernel_size=1)
 
         # Pooling  (kernelsize == last feature map size, depends on size of images)
         #self.pool2 = nn.AvgPool2d((1,3))
@@ -296,7 +313,19 @@ class BirdNET(nn.Module):
 def create_BirdNET(n_classes, lr=0.01):
     """Creates model, optimizer"""
 
-    model = BirdNET()
+    model = BirdNET(n_classes)
+    model.to(device)
+    model.cuda()
+    
+    optimizer = optim.AdamW(model.parameters(), lr=lr)
+    
+    return model, optimizer
+
+
+def create_ResNet50(n_classes, lr=0.01, pretrained=true):
+    """Creates model, optimizer"""
+
+    model = ResNet50(n_classes, pretrained)
     model.to(device)
     model.cuda()
     
@@ -376,7 +405,7 @@ class Stats():
 
 class StatsCallback(Callback):
     _order = 1
-    def __init__(self, metrics, mod=False):
+    def __init__(self, metrics):
         self.train_stats = Stats(metrics, True)
         self.valid_stats = Stats(metrics, False)
         self.plotCount = 1
@@ -758,10 +787,11 @@ torch.hub._validate_not_a_forked_repo=lambda a,b,c: True
 
 
 databunch = DataBunch(train_dl, val_dl)
-learn = Learner(*create_BirdNET(15, lr=0.01), nn.BCEWithLogitsLoss(), databunch)
+#learn = Learner(*create_BirdNET(LEN_CLASSES, lr=0.01), nn.BCEWithLogitsLoss(), databunch)
+learn = Learner(*create_ResNet50(LEN_CLASSES, lr=0.01), nn.BCEWithLogitsLoss(), databunch)
 
 
-stats_cbf = partial(StatsCallback, accuracy_multi_label, True)
+stats_cbf = partial(StatsCallback, accuracy_multi_label)
 checkpoint_cbf = partial(SaveCheckpointCallback)
 
 run = Runner(cb_funcs=[stats_cbf, checkpoint_cbf])
