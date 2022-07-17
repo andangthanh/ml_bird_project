@@ -26,6 +26,6 @@ module load matplotlib
 module load scikit-learn
 
 source /lustre/scratch2/ws/0/s4030475-ml_birds_project/virt_envs/alpha-test-env2/bin/activate
-python /lustre/scratch2/ws/0/s4030475-ml_birds_project/code/specAug_5maskLen.py.py
+python /lustre/scratch2/ws/0/s4030475-ml_birds_project/code/specAug_5maskLen.py
 
 exit 0
