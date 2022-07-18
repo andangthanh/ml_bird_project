@@ -19,9 +19,9 @@ import matplotlib as mpl
 mpl.rcParams['figure.dpi']=100
 mpl.use('Agg')
 
-from settings import initialize
+from settings import device, LEN_CLASSES
 from helpfuncs import camel2snake, listify, accuracy_multi_label
-from transformations import FreqMask, TimeMask
+from transformations import FreqMask, TimeMask, target_to_one_hot
 from databunch import DataBunch
 from callbacks import StatsCallback, SaveCheckpointCallback
 from learner import Runner, Learner, create_BirdNET, create_ResNet50
@@ -39,8 +39,6 @@ newDir.mkdir(parents=True, exist_ok=True)
 print("1")
 np.random.seed(0)
 torch.manual_seed(0)
-
-initialize()
 
 
 #################

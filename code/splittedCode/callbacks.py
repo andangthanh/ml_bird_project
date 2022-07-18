@@ -72,11 +72,11 @@ class StatsCallback(Callback):
         self.train_stats = Stats(metrics, True)
         self.valid_stats = Stats(metrics, False)
         self.plotCount = 1
-        self.save_path
+        self.save_path = save_path
 
     def begin_fit(self):
-        if run.resume:
-            self.plotCount = run.epoch + 1
+        if self.run.resume:
+            self.plotCount = self.run.epoch + 1
     
     def begin_epoch(self):
         self.train_stats.reset()
@@ -91,7 +91,7 @@ class StatsCallback(Callback):
             self.train_stats.hist_metrics[i].append(self.train_stats.avg_stats[i])
             self.valid_stats.hist_metrics[i].append(self.valid_stats.avg_stats[i])
 
-        if run.epoch > 0 and run.epoch%1==0:
+        if self.run.epoch > 0 and self.run.epoch%1==0:
             #=====================================================================================================================================#
             #=====================================================================================================================================#
             #=====================================================================================================================================#
@@ -111,7 +111,7 @@ class StatsCallback(Callback):
             # Plot train loss, val loss against epochs passed
             cut_at = 20
             plt.figure(figsize=(6,4))
-            plt.title("Loss over epoch No. {}".format(run.epoch))
+            plt.title("Loss over epoch No. {}".format(self.run.epoch))
             t=np.stack(self.train_stats.hist_metrics[0])
             t=np.ma.masked_where(t > cut_at, t)
             v=np.stack(self.valid_stats.hist_metrics[0])
@@ -130,7 +130,7 @@ class StatsCallback(Callback):
 
             # Plot train acc, val acc
             plt.figure(figsize=(6,4))
-            plt.title("Accuracy over epoch No. {}".format(run.epoch))
+            plt.title("Accuracy over epoch No. {}".format(self.run.epoch))
             plt.plot(N, self.train_stats.hist_metrics[1], label = "Training Accuracy", c='cornflowerblue')
             plt.plot(N, self.valid_stats.hist_metrics[1], label = "Valid Accuracy", c='orange')
             plt.xlabel("Epoch #")
@@ -152,11 +152,11 @@ class SaveCheckpointCallback(Callback):
     _order = 2
     def __init__(self, save_path):
         self.best_loss = 10000000.0
-        self.save_path
+        self.save_path = save_path
     
     def after_epoch(self):
-        is_best = run.stats.valid_stats.avg_stats[0] < self.best_loss
-        self.best_loss = min(run.stats.valid_stats.avg_stats[0], self.best_loss)
+        is_best = self.run.stats.valid_stats.avg_stats[0] < self.best_loss
+        self.best_loss = min(self.run.stats.valid_stats.avg_stats[0], self.best_loss)
 
 
 
@@ -168,10 +168,10 @@ class SaveCheckpointCallback(Callback):
             'state_dict': self.model.state_dict(),
             'optimizer' : self.optimizer.state_dict(),
             'best_loss': self.best_loss,
-            'train_loss_his' : run.stats.train_stats.hist_metrics[0],
-            'valid_loss_his' : run.stats.valid_stats.hist_metrics[0],
-            'train_acc' : run.stats.train_stats.hist_metrics[1],
-            'valid_acc' : run.stats.valid_stats.hist_metrics[1],
+            'train_loss_his' : self.run.stats.train_stats.hist_metrics[0],
+            'valid_loss_his' : self.run.stats.valid_stats.hist_metrics[0],
+            'train_acc' : self.run.stats.train_stats.hist_metrics[1],
+            'valid_acc' : self.run.stats.valid_stats.hist_metrics[1],
         }, is_best, filename=self.save_path / "checkpoint.pth.tar")
         
     def after_fit(self):
@@ -181,10 +181,10 @@ class SaveCheckpointCallback(Callback):
             'state_dict': self.model.state_dict(),
             'optimizer' : self.optimizer.state_dict(),
             'best_loss': self.best_loss,
-            'train_loss_his' : run.stats.train_stats.hist_metrics[0],
-            'valid_loss_his' : run.stats.valid_stats.hist_metrics[0],
-            'train_acc' : run.stats.train_stats.hist_metrics[1],
-            'valid_acc' : run.stats.valid_stats.hist_metrics[1],
+            'train_loss_his' : self.run.stats.train_stats.hist_metrics[0],
+            'valid_loss_his' : self.run.stats.valid_stats.hist_metrics[0],
+            'train_acc' : self.run.stats.train_stats.hist_metrics[1],
+            'valid_acc' : self.run.stats.valid_stats.hist_metrics[1],
         }, self.save_path / "final_epoch_model.pth.tar")
             
         
