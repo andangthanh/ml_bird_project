@@ -19,7 +19,7 @@ import matplotlib as mpl
 mpl.rcParams['figure.dpi']=100
 mpl.use('Agg')
 
-from settings import device, LEN_CLASSES
+from settings import device
 from helpfuncs import camel2snake, listify, accuracy_multi_label
 from transformations import FreqMask, TimeMask, target_to_one_hot
 from databunch import DataBunch
@@ -33,6 +33,7 @@ modelSaveName = "SpecAug5Mask"
 architecture = "BirdNET"
 newDir = Path().resolve().parent / f"figures_and_models/{architecture}/{modelSaveName}"
 newDir.mkdir(parents=True, exist_ok=True)
+LEN_CLASSES = 15
 #====================================
 #====================================
 
@@ -76,18 +77,19 @@ start = time.time()
 
 path = Path().resolve().parent #workspace folder (/lustre/scratch2/ws/0/s4030475-ml_birds_project/)
 print("3")
+target_t = partial(target_to_one_hot, LEN_CLASSES)
 train_path = path / "bird_data/spectrograms/xeno-canto-data/raw_specs/data/train"
-train_ds = torchvision.datasets.ImageFolder(root=train_path, transform=transform, target_transform=target_to_one_hot)
+train_ds = torchvision.datasets.ImageFolder(root=train_path, transform=transform, target_transform=target_t)
 train_dl = DataLoader(dataset=train_ds, batch_size=256, shuffle=True, num_workers=10)
 
 idx2class = {v: k for k, v in train_ds.class_to_idx.items()}
 print("4")
 val_path = path / "bird_data/spectrograms/xeno-canto-data/raw_specs/data/val"
-val_ds = torchvision.datasets.ImageFolder(root=val_path, transform=transform_val, target_transform=target_to_one_hot)
+val_ds = torchvision.datasets.ImageFolder(root=val_path, transform=transform_val, target_transform=target_t)
 val_dl = DataLoader(dataset=val_ds, batch_size=128, shuffle=False, num_workers=10)
 
 test_path = path / "bird_data/spectrograms/xeno-canto-data/raw_specs/data/test"
-test_ds = torchvision.datasets.ImageFolder(root=test_path, transform=transform_val, target_transform=target_to_one_hot)
+test_ds = torchvision.datasets.ImageFolder(root=test_path, transform=transform_val, target_transform=target_t)
 test_dl = DataLoader(dataset=test_ds, batch_size=1, shuffle=False, num_workers=10)
 
 end = time.time()

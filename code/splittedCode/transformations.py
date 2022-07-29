@@ -1,7 +1,6 @@
 import torch
 import random
 import torch.nn as nn
-from settings import LEN_CLASSES
 
 class FreqMask(nn.Module):
     def  __init__(self, max_mask_size_F=20, num_masks=1, replace_with_zero=False):
@@ -88,7 +87,7 @@ class TimeMask(nn.Module):
         return mel_spectro
 
 
-def target_to_one_hot(target):
-    NUM_CLASS = LEN_CLASSES
+def target_to_one_hot(num_class, target):
+    NUM_CLASS = num_class
     one_hot = torch.eye(NUM_CLASS)[target]
     return one_hot
