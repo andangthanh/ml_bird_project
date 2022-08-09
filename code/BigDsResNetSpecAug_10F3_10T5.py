@@ -19,20 +19,21 @@ import matplotlib as mpl
 mpl.rcParams['figure.dpi']=100
 mpl.use('Agg')
 
-from settings import device, LEN_CLASSES
+from settings import device
 from helpfuncs import camel2snake, listify, accuracy_multi_label
 from transformations import FreqMask, TimeMask, target_to_one_hot
-from databunch import DataBunch
+from databunch import DataBunch, ClassSpecificImageFolder
 from callbacks import StatsCallback, SaveCheckpointCallback
 from learner import Runner, Learner, create_BirdNET, create_ResNet50
 
 
 #====================================
 #====================================
-modelSaveName = "SpecAug_10F3_10T5"
+modelSaveName = "Untrained"
 architecture = "ResNet50"
-newDir = Path().resolve().parent / f"figures_and_models/{architecture}/{modelSaveName}"
+newDir = Path().resolve().parent / f"figures_and_models_europe_split/{architecture}/{modelSaveName}"
 newDir.mkdir(parents=True, exist_ok=True)
+LEN_CLASSES = 518
 #====================================
 #====================================
 
@@ -51,8 +52,8 @@ transform = transforms.Compose(
     #transforms.RandomApply([transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5))], p=0.5),
     transforms.Resize((345,128)), #(64,384)
     transforms.ToTensor(),
-    FreqMask(max_mask_size_F=10, num_masks = 3),
-    TimeMask(max_mask_len_T=10, num_masks = 5),
+    #FreqMask(max_mask_size_F=10, num_masks = 3),
+    #TimeMask(max_mask_len_T=10, num_masks = 5),
     transforms.Normalize((0.5), (0.5))])
 
 transform_val = transforms.Compose(
@@ -76,18 +77,31 @@ start = time.time()
 
 path = Path().resolve().parent #workspace folder (/lustre/scratch2/ws/0/s4030475-ml_birds_project/)
 print("3")
-train_path = path / "bird_data/spectrograms/xeno-canto-data/raw_specs/data/train"
-train_ds = torchvision.datasets.ImageFolder(root=train_path, transform=transform, target_transform=target_to_one_hot)
+target_t = partial(target_to_one_hot, 585)
+dropped_classes = ['Actitis macularius', 'Amandava amandava', 'Anthus godlewskii', 
+'Anthus gustavi', 'Branta hutchinsii', 'Bucanetes githagineus', 
+'Calidris fuscicollis', 'Calidris pusilla', 'Caloenas nicobarica', 
+'Charadrius semipalmatus', 'Chrysolophus pictus', 'Decticus verrucivorus', 
+'Dendrocygna bicolor', 'Dendrocygna viduata', 'Gomphocerippus rufus', 
+'Grus japonensis', 'Grus virgo', 'Larus glaucoides', 'Leptophyes calabra', 
+'Melopsittacus undulatus', 'Oenanthe xanthoprymna', 'Omocestus rufipes', 
+'Parnassiana chelmos', 'Parnassiana parnassica', 'Pelecanus occidentalis', 
+'Phaneroptera falcata', 'Pterolepis elymica', 'Rhacocleis maculipedes', 
+'Rhea americana', 'Rhodopechys sanguineus', 'Seiurus aurocapilla', 
+'Sporadiana sporadarum', 'Stenobothrus stigmaticus']
+
+train_path = path / "bird_data/europe_split_4000/europe_split_4000/train"
+train_ds = ClassSpecificImageFolder(root=train_path, dropped_classes=dropped_classes, transform=transform, target_transform=target_t)
 train_dl = DataLoader(dataset=train_ds, batch_size=256, shuffle=True, num_workers=10)
 
 idx2class = {v: k for k, v in train_ds.class_to_idx.items()}
 print("4")
-val_path = path / "bird_data/spectrograms/xeno-canto-data/raw_specs/data/val"
-val_ds = torchvision.datasets.ImageFolder(root=val_path, transform=transform_val, target_transform=target_to_one_hot)
+val_path = path / "bird_data/europe_split_4000/europe_split_4000/val"
+val_ds = ClassSpecificImageFolder(root=val_path, dropped_classes=dropped_classes, transform=transform_val, target_transform=target_t)
 val_dl = DataLoader(dataset=val_ds, batch_size=128, shuffle=False, num_workers=10)
 
-test_path = path / "bird_data/spectrograms/xeno-canto-data/raw_specs/data/test"
-test_ds = torchvision.datasets.ImageFolder(root=test_path, transform=transform_val, target_transform=target_to_one_hot)
+test_path = path / "bird_data/europe_split_4000/europe_split_4000/test"
+test_ds = ClassSpecificImageFolder(root=test_path, dropped_classes=dropped_classes, transform=transform_val, target_transform=target_t)
 test_dl = DataLoader(dataset=test_ds, batch_size=1, shuffle=False, num_workers=10)
 
 end = time.time()
@@ -144,7 +158,7 @@ print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds))
 y_pred_list = []
 y_true_list = []
 with torch.no_grad():
-    for i, batch_data in enumerate(test_dl,0):
+    for i, batch_data in enumerate(val_dl,0):
         xb, yb = batch_data[0].to(device), batch_data[1].to(device)
         y_test_pred = run.learn.model(xb)
 

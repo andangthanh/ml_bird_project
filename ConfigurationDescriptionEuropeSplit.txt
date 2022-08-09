@@ -21,7 +21,7 @@ ResNetSpecAug
 		-T(5,5)	
 
 
-ResNetUntrained
+BigDsResNet50Untrained
 	-150 epochs
 	-untrained ResNet50
 	-(345,128)
