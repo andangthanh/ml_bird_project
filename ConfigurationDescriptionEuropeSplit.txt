@@ -1,0 +1,27 @@
+SpecAugment
+	-F(max_mask_size_F="", num_masks ="")
+	-T(max_mask_len_T="", num_masks ="")
+
+
+specAug_5maskLen
+	-300 epochs
+	-BirdNet
+	-(345,128)
+	-SpecAugment
+		-F(5,5)
+		-T(5,5)	
+
+
+ResNetSpecAug
+	-300 epochs
+	-pretrained ResNet50
+	-(345,128)
+	-SpecAugment
+		-F(5,5)
+		-T(5,5)	
+
+
+ResNetUntrained
+	-150 epochs
+	-untrained ResNet50
+	-(345,128)
