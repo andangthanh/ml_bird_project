@@ -1,0 +1,11 @@
+['Actitis macularius', 'Amandava amandava', 'Anthus godlewskii', 
+'Anthus gustavi', 'Branta hutchinsii', 'Bucanetes githagineus', 
+'Calidris fuscicollis', 'Calidris pusilla', 'Caloenas nicobarica', 
+'Charadrius semipalmatus', 'Chrysolophus pictus', 'Decticus verrucivorus', 
+'Dendrocygna bicolor', 'Dendrocygna viduata', 'Gomphocerippus rufus', 
+'Grus japonensis', 'Grus virgo', 'Larus glaucoides', 'Leptophyes calabra', 
+'Melopsittacus undulatus', 'Oenanthe xanthoprymna', 'Omocestus rufipes', 
+'Parnassiana chelmos', 'Parnassiana parnassica', 'Pelecanus occidentalis', 
+'Phaneroptera falcata', 'Pterolepis elymica', 'Rhacocleis maculipedes', 
+'Rhea americana', 'Rhodopechys sanguineus', 'Seiurus aurocapilla', 
+'Sporadiana sporadarum', 'Stenobothrus stigmaticus']
