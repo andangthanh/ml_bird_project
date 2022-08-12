@@ -141,23 +141,43 @@ class BirdNET(nn.Module):
         self.pool1 = nn.MaxPool2d(kernel_size=(1, 2), stride=(1, 2))
 
         # Residual Stacks
-        self.resblocks = []
+        # self.resblocks = []
+        resnum = 0
         for i in range(1, len(FILTERS)):
-            self.resblocks.append(Resblock(in_channels=int(FILTERS[i-1] * RESNET_K),
-                                           filters=int(FILTERS[i] * RESNET_K),
-                                           kernel_size=KERNEL_SIZES[i],
-                                           stride=2,
-                                           preactivated=True,
-                                           block_id=i,
-                                           name='BLOCK ' + str(i) + '-1').cuda())
+            #self.resblocks.append(Resblock(in_channels=int(FILTERS[i-1] * RESNET_K),
+            #                               filters=int(FILTERS[i] * RESNET_K),
+            #                               kernel_size=KERNEL_SIZES[i],
+            #                               stride=2,
+            #                               preactivated=True,
+            #                               block_id=i,
+            #                               name='BLOCK ' + str(i) + '-1').cuda())
+            
+            setattr(self, 'resblock{0}'.format(resnum), Resblock(in_channels=int(FILTERS[i-1] * RESNET_K),
+                                                                filters=int(FILTERS[i] * RESNET_K),
+                                                                kernel_size=KERNEL_SIZES[i],
+                                                                stride=2,
+                                                                preactivated=True,
+                                                                block_id=i,
+                                                                name='BLOCK ' + str(i) + '-1').cuda())
+            
+            resnum += 1
 
             for j in range(1, RESNET_N):
-                self.resblocks.append(Resblock(in_channels=int(FILTERS[i] * RESNET_K),
-                                               filters=int(FILTERS[i] * RESNET_K),
-                                               kernel_size=KERNEL_SIZES[i],
-                                               preactivated=False,
-                                               block_id=i+j,
-                                               name='BLOCK ' + str(i) + '-' + str(j + 1)).cuda())
+                #self.resblocks.append(Resblock(in_channels=int(FILTERS[i] * RESNET_K),
+                #                               filters=int(FILTERS[i] * RESNET_K),
+                #                               kernel_size=KERNEL_SIZES[i],
+                #                               preactivated=False,
+                #                               block_id=i+j,
+                #                               name='BLOCK ' + str(i) + '-' + str(j + 1)).cuda())
+                
+                setattr(self, 'resblock{0}'.format(resnum), Resblock(in_channels=int(FILTERS[i] * RESNET_K),
+                                                                    filters=int(FILTERS[i] * RESNET_K),
+                                                                    kernel_size=KERNEL_SIZES[i],
+                                                                    preactivated=False,
+                                                                    block_id=i+j,
+                                                                    name='BLOCK ' + str(i) + '-' + str(j + 1)).cuda())
+                
+                resnum += 1
         
         self.bn2 = nn.BatchNorm2d(int(FILTERS[-1] * RESNET_K))
 
@@ -191,8 +211,20 @@ class BirdNET(nn.Module):
         x = self.relu(x)
         x = self.pool1(x)
 
-        for block in self.resblocks:
-            x = block(x)
+        #for block in self.resblocks:
+        #    x = block(x)
+        x = self.resblock0(x)
+        x = self.resblock1(x)
+        x = self.resblock2(x)
+        x = self.resblock3(x)
+        x = self.resblock4(x)
+        x = self.resblock5(x)
+        x = self.resblock6(x)
+        x = self.resblock7(x)
+        x = self.resblock8(x)
+        x = self.resblock9(x)
+        x = self.resblock10(x)
+        x = self.resblock11(x)
 
         x = self.bn2(x)
         x = self.relu(x)
