@@ -141,7 +141,7 @@ class BirdNET(nn.Module):
         self.pool1 = nn.MaxPool2d(kernel_size=(1, 2), stride=(1, 2))
 
         # Residual Stacks
-         self.resStacks = nn.ModuleList()
+        self.resStacks = nn.ModuleList()
 
         for i in range(1, len(FILTERS)):
             self.resStacks.append(Resblock(in_channels=int(FILTERS[i-1] * RESNET_K),
@@ -192,7 +192,7 @@ class BirdNET(nn.Module):
         x = self.relu(x)
         x = self.pool1(x)
 
-        for block in self.resblocks:
+        for block in self.resStacks:
             x = block(x)
 
         x = self.bn2(x)
