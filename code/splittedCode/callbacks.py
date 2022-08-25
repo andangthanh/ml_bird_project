@@ -191,10 +191,10 @@ class SaveCheckpointCallback(Callback):
             'valid_loss_his' : self.run.stats.valid_stats.hist_metrics[0],
             'train_acc' : self.run.stats.train_stats.hist_metrics[1],
             'valid_acc' : self.run.stats.valid_stats.hist_metrics[1],
-            'train_rec' : self.run.stats.train_stats.hist_metrics[2],
-            'valid_rec' : self.run.stats.valid_stats.hist_metrics[2],
-            'train_prec' : self.run.stats.train_stats.hist_metrics[3],
-            'valid_prec' : self.run.stats.valid_stats.hist_metrics[3],
+            'train_macro_rec' : self.run.stats.train_stats.hist_metrics[2],
+            'valid_macro_rec' : self.run.stats.valid_stats.hist_metrics[2],
+            'train_macro_prec' : self.run.stats.train_stats.hist_metrics[3],
+            'valid_macro_prec' : self.run.stats.valid_stats.hist_metrics[3],
         }, is_best, filename=self.save_path / "checkpoint.pth.tar")
         
     def after_fit(self):
@@ -208,10 +208,10 @@ class SaveCheckpointCallback(Callback):
             'valid_loss_his' : self.run.stats.valid_stats.hist_metrics[0],
             'train_acc' : self.run.stats.train_stats.hist_metrics[1],
             'valid_acc' : self.run.stats.valid_stats.hist_metrics[1],
-            'train_rec' : self.run.stats.train_stats.hist_metrics[2],
-            'valid_rec' : self.run.stats.valid_stats.hist_metrics[2],
-            'train_prec' : self.run.stats.train_stats.hist_metrics[3],
-            'valid_prec' : self.run.stats.valid_stats.hist_metrics[3],
+            'train_macro_rec' : self.run.stats.train_stats.hist_metrics[2],
+            'valid_macro_rec' : self.run.stats.valid_stats.hist_metrics[2],
+            'train_macro_prec' : self.run.stats.train_stats.hist_metrics[3],
+            'valid_pmacro_rec' : self.run.stats.valid_stats.hist_metrics[3],
         }, self.save_path / "final_epoch_model.pth.tar")
             
         
