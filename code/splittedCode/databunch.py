@@ -80,63 +80,6 @@ def is_image_file(filename: str) -> bool:
     """
     return has_file_allowed_extension(filename, IMG_EXTENSIONS)
 
-def make_dataset(
-    directory: str,
-    class_to_idx: Optional[Dict[str, int]] = None,
-    extensions: Optional[Union[str, Tuple[str, ...]]] = None,
-    is_valid_file: Optional[Callable[[str], bool]] = None,
-) -> List[Tuple[str, int]]:
-    """Generates a list of samples of a form (path_to_sample, class).
-
-    See :class:`DatasetFolder` for details.
-
-    Note: The class_to_idx parameter is here optional and will use the logic of the ``find_classes`` function
-    by default.
-    """
-    directory = os.path.expanduser(directory)
-
-    if class_to_idx is None:
-        _, class_to_idx = find_classes(directory)
-    elif not class_to_idx:
-        raise ValueError("'class_to_index' must have at least one entry to collect any samples.")
-
-    both_none = extensions is None and is_valid_file is None
-    both_something = extensions is not None and is_valid_file is not None
-    if both_none or both_something:
-        raise ValueError("Both extensions and is_valid_file cannot be None or not None at the same time")
-
-    if extensions is not None:
-
-        def is_valid_file(x: str) -> bool:
-            return has_file_allowed_extension(x, extensions)  # type: ignore[arg-type]
-
-    is_valid_file = cast(Callable[[str], bool], is_valid_file)
-
-    instances = []
-    available_classes = set()
-    for target_class in sorted(class_to_idx.keys()):
-        class_index = class_to_idx[target_class]
-        target_dir = os.path.join(directory, target_class)
-        if not os.path.isdir(target_dir):
-            continue
-        for root, _, fnames in sorted(os.walk(target_dir, followlinks=True)):
-            for fname in sorted(fnames):
-                path = os.path.join(root, fname)
-                if is_valid_file(path):
-                    item = path, class_index
-                    instances.append(item)
-
-                    if target_class not in available_classes:
-                        available_classes.add(target_class)
-
-    empty_classes = set(class_to_idx.keys()) - available_classes
-    if empty_classes:
-        msg = f"Found no valid file for the classes {', '.join(sorted(empty_classes))}. "
-        if extensions is not None:
-            msg += f"Supported extensions are: {extensions if isinstance(extensions, str) else ', '.join(extensions)}"
-        raise FileNotFoundError(msg)
-
-    return instances
 
 class WholeDataset(data.Dataset):
 
@@ -145,9 +88,10 @@ class WholeDataset(data.Dataset):
     def __init__(
         self,
         root: str,
+        n_samples,
         dropped_classes=[],
         loader = datasets.folder.default_loader,
-        extensions: Optional[Tuple[str, ...]] = None,
+        extensions: Optional[Tuple[str, ...]] = IMG_EXTENSIONS,
         transforms: Optional[Callable] = None,
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
@@ -156,7 +100,7 @@ class WholeDataset(data.Dataset):
         if isinstance(root, torch._six.string_classes):
             root = os.path.expanduser(root)
         self.root = root
-
+        self.dropped_classes = dropped_classes
         has_transforms = transforms is not None
         has_separate_transform = transform is not None or target_transform is not None
         if has_transforms and has_separate_transform:
@@ -170,20 +114,19 @@ class WholeDataset(data.Dataset):
             transforms = StandardTransform(transform, target_transform)
         self.transforms = transforms
 
-        classes, class_to_idx = self.find_classes(self.root)
-        samples = self.make_dataset(self.root, class_to_idx, extensions, is_valid_file)
-
+        print(self.root)
+        self.classes, self.class_to_idx = self.find_classes(self.root)
         self.loader = loader
         self.extensions = extensions
+        self.n_samples = n_samples
+        self.samples = self.make_dataset(self.root, self.n_samples, self.class_to_idx, self.extensions, is_valid_file)
 
-        self.classes = classes
-        self.class_to_idx = class_to_idx
-        self.samples = samples
-        self.targets = [s[1] for s in samples]
+        self.targets = [s[1] for s in self.samples]
 
     def make_dataset(
         self,
         directory: str,
+        n_samples,
         class_to_idx: Dict[str, int],
         extensions: Optional[Tuple[str, ...]] = None,
         is_valid_file: Optional[Callable[[str], bool]] = None,
@@ -231,8 +174,10 @@ class WholeDataset(data.Dataset):
 
         is_valid_file = cast(Callable[[str], bool], is_valid_file)
 
-        instances = []
+        #instances = []
+        instances = np.empty((n_samples, 2), dtype=object)
         available_classes = set()
+        index = 0
         for target_class in sorted(class_to_idx.keys()):
             class_index = class_to_idx[target_class]
             target_dir = os.path.join(directory, target_class)
@@ -242,9 +187,9 @@ class WholeDataset(data.Dataset):
                 for fname in sorted(fnames):
                     path = os.path.join(root, fname)
                     if is_valid_file(path):
-                        item = self.loader(path), class_index
-                        instances.append(item)
-
+                        #instances.append((self.loader(path), class_index))
+                        instances[index] = self.loader(path), class_index
+                        index += 1
                         if target_class not in available_classes:
                             available_classes.add(target_class)
 
@@ -330,5 +275,4 @@ class StandardTransform:
             body += self._format_transform_repr(self.target_transform, "Target transform: ")
 
         return "\n".join(body)
-
 
