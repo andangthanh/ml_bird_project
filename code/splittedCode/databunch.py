@@ -10,6 +10,8 @@ from PIL import Image
 import torch
 import torch.utils.data as data
 
+import numpy as np
+
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 
 
