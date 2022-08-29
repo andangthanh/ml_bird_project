@@ -95,6 +95,8 @@ class Runner():
                 # validation mode
                 with torch.no_grad(): 
                     if not self('begin_validate'): self.all_batches(self.databunch.valid_dl)
+                if self.epoch == 0:
+                    self.databunch.train_dl.dataset.set_use_cache(True)
                 self.epoch += 1
                 if self('after_epoch'): break
                  
