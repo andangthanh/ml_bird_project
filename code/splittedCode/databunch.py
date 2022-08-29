@@ -124,7 +124,7 @@ class WholeDataset(data.Dataset):
 
         shared_array_base = mp.Array(ctypes.c_ubyte, n_samples*n_channels*height*width)
         shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-        shared_array = shared_array.reshape(nb_samples, h, w, c)
+        shared_array = shared_array.reshape(n_samples, height, width, n_channels)
         self.shared_array = torch.from_numpy(shared_array)
         self.use_cache = False
 
