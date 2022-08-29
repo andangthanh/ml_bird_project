@@ -12,6 +12,9 @@ import torch.utils.data as data
 
 import numpy as np
 
+import ctypes
+import multiprocessing as mp
+
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 
 
@@ -91,6 +94,9 @@ class WholeDataset(data.Dataset):
         self,
         root: str,
         n_samples,
+        n_channels,
+        height,
+        width,
         dropped_classes=[],
         loader = datasets.folder.default_loader,
         extensions: Optional[Tuple[str, ...]] = IMG_EXTENSIONS,
@@ -116,7 +122,12 @@ class WholeDataset(data.Dataset):
             transforms = StandardTransform(transform, target_transform)
         self.transforms = transforms
 
-        print(self.root)
+        shared_array_base = mp.Array(ctypes.c_ubyte, n_samples*n_channels*height*width)
+        shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
+        shared_array = shared_array.reshape(nb_samples, h, w, c)
+        self.shared_array = torch.from_numpy(shared_array)
+        self.use_cache = False
+
         self.classes, self.class_to_idx = self.find_classes(self.root)
         self.loader = loader
         self.extensions = extensions
@@ -176,8 +187,8 @@ class WholeDataset(data.Dataset):
 
         is_valid_file = cast(Callable[[str], bool], is_valid_file)
 
-        #instances = []
-        instances = np.empty((n_samples, 2), dtype=object)
+        instances = []
+        #instances = np.empty((n_samples, 2), dtype=object)
         available_classes = set()
         index = 0
         for target_class in sorted(class_to_idx.keys()):
@@ -189,9 +200,10 @@ class WholeDataset(data.Dataset):
                 for fname in sorted(fnames):
                     path = os.path.join(root, fname)
                     if is_valid_file(path):
+                        instances.append((path, class_index))
                         #instances.append((self.loader(path), class_index))
-                        instances[index] = self.loader(path), class_index
-                        index += 1
+                        #instances[index] = self.loader(path), class_index
+                        #index += 1
                         if target_class not in available_classes:
                             available_classes.add(target_class)
 
@@ -215,6 +227,9 @@ class WholeDataset(data.Dataset):
         class_to_idx = {cls_name: i for i, cls_name in enumerate(classes)}
         return classes, class_to_idx
 
+    def set_use_cache(self, use_cache):
+        self.use_cache = use_cache
+
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         """
         Args:
@@ -223,7 +238,10 @@ class WholeDataset(data.Dataset):
         Returns:
             tuple: (sample, target) where target is class_index of the target class.
         """
-        sample, target = self.samples[index]
+        if not self.use_cache:
+            path, target = self.samples[index]
+            self.shared_array[index] = self.loader(path)
+        sample = self.shared_array[index]
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
@@ -232,7 +250,7 @@ class WholeDataset(data.Dataset):
         return sample, target
 
     def __len__(self) -> int:
-        return len(self.samples)
+        return self.n_samples
 
     def __repr__(self) -> str:
         head = "Dataset " + self.__class__.__name__
