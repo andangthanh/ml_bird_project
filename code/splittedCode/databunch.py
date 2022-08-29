@@ -246,7 +246,7 @@ class WholeDataset(data.Dataset):
             sample = self.loader(path)
             if sample.size != (self.width, self.height):
                 sample = self.resize(sample)
-            self.shared_array[index] = self.loader(path)
+            self.shared_array[index] = sample
         sample = self.shared_array[index]
         if self.transform is not None:
             sample = self.transform(sample)
