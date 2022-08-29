@@ -1,4 +1,5 @@
 from torchvision import datasets
+from torchvision import transforms as T
 import os
 
 import os.path
@@ -116,6 +117,9 @@ class WholeDataset(data.Dataset):
 
         # for backwards-compatibility
         self.transform = transform
+        self.resize = T.Resize((height, width))
+        self.height = height
+        self.width = width
         self.target_transform = target_transform
 
         if has_separate_transform:
@@ -239,6 +243,9 @@ class WholeDataset(data.Dataset):
         """
         if not self.use_cache:
             path, target = self.samples[index]
+            sample = self.loader(path)
+            if sample.size != (self.width, self.height):
+                sample = self.resize(sample)
             self.shared_array[index] = self.loader(path)
         sample = self.shared_array[index]
         if self.transform is not None:
