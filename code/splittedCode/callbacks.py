@@ -7,7 +7,7 @@ import re
 from helpfuncs import *
 
 class Callback():
-    _order=0
+    _order = 0
     def set_runner(self, run): self.run=run
     
     # delegate object to run object if cant find attribute in Callback class
@@ -16,6 +16,14 @@ class Callback():
     def name(self):
         name = re.sub(r'Callback$', '', self.__class__.__name__)
         return camel2snake(name or 'callback')
+
+
+class UseCacheCallback(Callback):
+    _order = 10
+    def after_epoch(self):
+        if not self.databunch.train_dl.dataset.use_cache:
+            self.databunch.train_dl.dataset.set_use_cache(True)
+            self.databunch.valid_dl.dataset.set_use_cache(True)
 
 
 class TrainEvalCallback(Callback):
