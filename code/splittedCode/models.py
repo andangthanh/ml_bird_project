@@ -163,7 +163,7 @@ class BirdNET(nn.Module):
         self.bn2 = nn.BatchNorm2d(int(FILTERS[-1] * RESNET_K))
 
         # Classification Branch     
-        self.conv2 = nn.Conv2d(in_channels=int(FILTERS[-1] * RESNET_K), out_channels=int(FILTERS[-1] * RESNET_K), kernel_size=(21,2))
+        self.conv2 = nn.Conv2d(in_channels=int(FILTERS[-1] * RESNET_K), out_channels=int(FILTERS[-1] * RESNET_K), kernel_size=(8,8))
         self.bn3 = nn.BatchNorm2d(int(FILTERS[-1] * RESNET_K))
         self.drop1 = nn.Dropout()
         # Dense Convolution  

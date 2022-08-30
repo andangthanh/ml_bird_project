@@ -22,9 +22,9 @@ def listify(o):
 def accuracy_multi_label(pred, yb): return (torch.argmax(pred, dim=1)==torch.argmax(yb, dim=1)).float().mean()
 
 def macro_metric_multi_label(metric, pred, yb):
-    pred_list = [x.np() for x in pred]
+    pred_list = [x.numpy() for x in pred]
     pred_list = np.around(pred_list)
-    true_list = [x.np() for x in yb]
+    true_list = [x.numpy() for x in yb]
     return classification_report(true_list, pred_list, output_dict=True)['macro avg'][metric]
 
 
