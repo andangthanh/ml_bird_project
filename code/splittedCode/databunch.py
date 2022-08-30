@@ -241,8 +241,8 @@ class WholeDataset(data.Dataset):
         Returns:
             tuple: (sample, target) where target is class_index of the target class.
         """
+        path, target = self.samples[index]
         if not self.use_cache:
-            path, target = self.samples[index]
             sample = self.loader(path)
             if sample.size != (self.width, self.height):
                 sample = self.resize(sample)
