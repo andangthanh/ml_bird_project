@@ -22,6 +22,7 @@ def listify(o):
 def accuracy_multi_label(pred, yb): return (torch.argmax(pred, dim=1)==torch.argmax(yb, dim=1)).float().mean()
 
 def macro_metric_multi_label(metric, pred, yb):
+    pred = torch.sigmoid(pred)
     pred_list = [x.detach().cpu().numpy() for x in pred]
     pred_list = np.around(pred_list)
     true_list = [x.detach().cpu().numpy() for x in yb]
