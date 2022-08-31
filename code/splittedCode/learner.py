@@ -117,7 +117,7 @@ class Runner():
                 if not self('begin_epoch'): self.all_batches(self.databunch.train_dl)
 
                 # validation mode
-                if self.rank == 0 or self.rank == None
+                if self.rank == 0 or self.rank == None:
                     with torch.no_grad():
                         if not self('begin_validate'): self.all_batches(self.databunch.valid_dl)
                 self.epoch += 1
