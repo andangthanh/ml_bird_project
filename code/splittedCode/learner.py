@@ -19,13 +19,13 @@ def create_BirdNET(n_classes, lr=0.01):
     return model, optimizer
 
 
-def ddp_create_BirdNET(n_classes, lr=0.01, args):
+def ddp_create_BirdNET(n_classes, lr=0.01, args=None):
     """Creates model, optimizer"""
 
     model = BirdNET(n_classes)
     torch.cuda.set_device(args.gpu)
     model.cuda(args.gpu)
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
     #model_without_ddp = model.module
 
     
@@ -111,14 +111,14 @@ class Runner():
             if self('begin_fit'): return
             while self.epoch < epochs:
                 if self.distributed != None:
-                    np.random.seed(epoch)
-                    random.seed(epoch)
-                    self.databunch.train_dl.sampler.set_epoch(epoch)
+                    np.random.seed(self.epoch)
+                    random.seed(self.epoch)
+                    self.databunch.train_dl.sampler.set_epoch(self.epoch)
                 if not self('begin_epoch'): self.all_batches(self.databunch.train_dl)
 
                 # validation mode
-                if rank == 0 or rank == None
-                    with torch.no_grad(): 
+                if self.rank == 0 or self.rank == None
+                    with torch.no_grad():
                         if not self('begin_validate'): self.all_batches(self.databunch.valid_dl)
                 self.epoch += 1
                 if self('after_epoch'): break
