@@ -3,6 +3,9 @@ from models import BirdNET, ResNet50
 from settings import device
 from helpfuncs import *
 from callbacks import TrainEvalCallback
+import torch
+import numpy as np
+import random
 
 def create_BirdNET(n_classes, lr=0.01):
     """Creates model, optimizer"""
@@ -10,6 +13,21 @@ def create_BirdNET(n_classes, lr=0.01):
     model = BirdNET(n_classes)
     model.to(device)
     model.cuda()
+    
+    optimizer = optim.AdamW(model.parameters(), lr=lr)
+    
+    return model, optimizer
+
+
+def ddp_create_BirdNET(n_classes, lr=0.01, args):
+    """Creates model, optimizer"""
+
+    model = BirdNET(n_classes)
+    torch.cuda.set_device(args.gpu)
+    model.cuda(args.gpu)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+    #model_without_ddp = model.module
+
     
     optimizer = optim.AdamW(model.parameters(), lr=lr)
     
@@ -38,7 +56,9 @@ class Learner:
 
 
 class Runner():
-    def __init__(self, cbs=None, cb_funcs=None):
+    def __init__(self, cbs=None, cb_funcs=None, rank=None, distributed=None):
+        self.rank = rank
+        self.distributed = distributed
         cbs = listify(cbs)
         for cbf in listify(cb_funcs):
             cb = cbf()
@@ -90,11 +110,16 @@ class Runner():
                 self.epoch = 0
             if self('begin_fit'): return
             while self.epoch < epochs:
+                if self.distributed != None:
+                    np.random.seed(epoch)
+                    random.seed(epoch)
+                    self.databunch.train_dl.sampler.set_epoch(epoch)
                 if not self('begin_epoch'): self.all_batches(self.databunch.train_dl)
 
                 # validation mode
-                with torch.no_grad(): 
-                    if not self('begin_validate'): self.all_batches(self.databunch.valid_dl)
+                if rank == 0 or rank == None
+                    with torch.no_grad(): 
+                        if not self('begin_validate'): self.all_batches(self.databunch.valid_dl)
                 self.epoch += 1
                 if self('after_epoch'): break
                  
