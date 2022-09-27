@@ -1,7 +1,7 @@
 import torch
 import math
 from typing import *
-from sklearn.metrics import classification_report, f1_score, recall_score, precision_score
+from sklearn.metrics import classification_report, f1_score, recall_score, precision_score, accuracy_score
 import re
 import numpy as np
 
@@ -33,18 +33,25 @@ def f1_score_multi_label(pred, yb):
     pred_list = [x.detach().cpu().numpy() for x in pred]
     pred_list = np.around(pred_list)
     true_list = [x.detach().cpu().numpy() for x in yb]
-    return f1_score(true_list, pred_list, average='macro')
+    return f1_score(true_list, pred_list, average='macro', zero_division=1)
 
 def recall_score_multi_label(pred, yb):
     pred = torch.sigmoid(pred)
     pred_list = [x.detach().cpu().numpy() for x in pred]
     pred_list = np.around(pred_list)
     true_list = [x.detach().cpu().numpy() for x in yb]
-    return recall_score(true_list, pred_list, average='macro')
+    return recall_score(true_list, pred_list, average='macro', zero_division=1)
 
 def precision_score_multi_label(pred, yb):
     pred = torch.sigmoid(pred)
     pred_list = [x.detach().cpu().numpy() for x in pred]
     pred_list = np.around(pred_list)
     true_list = [x.detach().cpu().numpy() for x in yb]
-    return precision_score(true_list, pred_list, average='macro')
+    return precision_score(true_list, pred_list, average='macro', zero_division=1)
+
+def accuracy_score_multi_label(pred, yb):
+    pred = torch.sigmoid(pred)
+    pred_list = [x.detach().cpu().numpy() for x in pred]
+    pred_list = np.around(pred_list)
+    true_list = [x.detach().cpu().numpy() for x in yb]
+    return accuracy_score(true_list, pred_list)

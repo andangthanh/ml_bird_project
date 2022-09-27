@@ -5,6 +5,7 @@ import shutil
 import collections
 import re
 from helpfuncs import *
+from sklearn.metrics import classification_report, f1_score, recall_score, precision_score, accuracy_score
 
 class Callback():
     _order = 0
@@ -24,6 +25,47 @@ class UseCacheCallback(Callback):
         if not self.databunch.train_dl.dataset.use_cache:
             self.databunch.train_dl.dataset.set_use_cache(True)
             self.databunch.valid_dl.dataset.set_use_cache(True)
+
+
+class TestInferenceCallback(Callback):
+    _order = 100
+    def __init__(self, save_path):
+        self.pred_list = []
+        self.true_list = []
+        self.save_path = save_path
+
+    def after_fit(self):
+
+        with torch.no_grad():
+            for i, batch_data in enumerate(self.run.databunch.valid_dl,0):
+                xb, yb = batch_data[0], batch_data[1]
+                y_test_pred = model(xb)
+
+                y_pred_sig = torch.sigmoid(y_test_pred)
+                y_pred_sig = [x.detach().cpu().numpy() for x in y_pred_sig]
+                y_pred_tag = np.around(y_pred_sig)
+
+                y_test_tag = [x.detach().cpu().numpy() for x in yb]
+                self.pred_list.append(y_pred_tag)
+                self.true_list.append(y_test_tag)
+                    
+        self.pred_list = np.reshape(y_pred_list, (-1,  LEN_CLASSES))
+        self.true_list = np.reshape(y_true_list, (-1,  LEN_CLASSES))
+
+        f1 = f1__score(self.true_list, self.pred_list, average="macro", zero_division=1)
+        prec = precision_score(self.true_list, self.pred_list, average="macro", zero_division=1)
+        rec = recall_score(self.true_list, self.pred_list, average="macro", zero_division=1)
+        acc = accuracy_score(self.true_list, self.pred_list)
+
+        torch.save({
+            'pred_list': self.pred_list,
+            'true_list': self.true_list,
+            'f1': f1,
+            'accuracy': acc,
+            'precision': prec,
+            'recall': rec,
+        }, self.save_path / "test_inference.pth.tar")
+
 
 
 class TrainEvalCallback(Callback):
