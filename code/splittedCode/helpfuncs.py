@@ -1,7 +1,7 @@
 import torch
 import math
 from typing import *
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, f1_score, recall_score, precision_score
 import re
 import numpy as np
 
@@ -28,6 +28,23 @@ def macro_metric_multi_label(metric, pred, yb):
     true_list = [x.detach().cpu().numpy() for x in yb]
     return classification_report(true_list, pred_list, output_dict=True)['macro avg'][metric]
 
+def f1_score_multi_label(pred, yb):
+    pred = torch.sigmoid(pred)
+    pred_list = [x.detach().cpu().numpy() for x in pred]
+    pred_list = np.around(pred_list)
+    true_list = [x.detach().cpu().numpy() for x in yb]
+    return f1_score(true_list, pred_list, average='macro')
 
+def recall_score_multi_label(pred, yb):
+    pred = torch.sigmoid(pred)
+    pred_list = [x.detach().cpu().numpy() for x in pred]
+    pred_list = np.around(pred_list)
+    true_list = [x.detach().cpu().numpy() for x in yb]
+    return recall_score(true_list, pred_list, average='macro')
 
-
+def precision_score_multi_label(pred, yb):
+    pred = torch.sigmoid(pred)
+    pred_list = [x.detach().cpu().numpy() for x in pred]
+    pred_list = np.around(pred_list)
+    true_list = [x.detach().cpu().numpy() for x in yb]
+    return precision_score(true_list, pred_list, average='macro')
