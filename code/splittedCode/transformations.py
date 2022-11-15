@@ -91,3 +91,11 @@ def target_to_one_hot(num_class, target):
     NUM_CLASS = num_class
     one_hot = torch.eye(NUM_CLASS)[target]
     return one_hot
+
+
+class DownmixMono(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, waveform):
+        return torch.mean(waveform, dim=0, keepdim=True)
