@@ -197,13 +197,15 @@ class StatsCallback(Callback):
 
             # Plot recall and precision
             plt.figure(figsize=(6,5))
-            plt.title("Recall/Precision over epoch No. {}".format(self.run.epoch))
+            plt.title("Recall/Precision/F1 over epoch No. {}".format(self.run.epoch))
             plt.plot(N, self.train_stats.hist_metrics[2], label = "Training Recall", c='cornflowerblue')
             plt.plot(N, self.valid_stats.hist_metrics[2], label = "Valid Recall", c='aqua')
             plt.plot(N, self.train_stats.hist_metrics[3], label = "Training Precision", c='red')
             plt.plot(N, self.valid_stats.hist_metrics[3], label = "Valid Precision", c='orange')
+            plt.plot(N, self.train_stats.hist_metrics[4], label = "Training F1-Score", c='darkgreen')
+            plt.plot(N, self.valid_stats.hist_metrics[4], label = "Valid F1-Score", c='limegreen')
             plt.xlabel("Epoch #")
-            plt.ylabel("Recall/Precision")
+            plt.ylabel("Recall/Precision/F1")
             plt.ylim([0.0, 1.05])
             plt.legend(loc="upper left")
             (save_path / "rec_prec").mkdir(parents=True, exist_ok=True)
@@ -245,6 +247,8 @@ class SaveCheckpointCallback(Callback):
             'valid_macro_rec' : self.run.stats.valid_stats.hist_metrics[2],
             'train_macro_prec' : self.run.stats.train_stats.hist_metrics[3],
             'valid_macro_prec' : self.run.stats.valid_stats.hist_metrics[3],
+            'train_macro_f1' : self.run.stats.train_stats.hist_metrics[4],
+            'valid_macro_f1' : self.run.stats.valid_stats.hist_metrics[4],
         }, is_best, filename=self.save_path / "checkpoint.pth.tar")
         
     def after_fit(self):
@@ -261,7 +265,9 @@ class SaveCheckpointCallback(Callback):
             'train_macro_rec' : self.run.stats.train_stats.hist_metrics[2],
             'valid_macro_rec' : self.run.stats.valid_stats.hist_metrics[2],
             'train_macro_prec' : self.run.stats.train_stats.hist_metrics[3],
-            'valid_pmacro_rec' : self.run.stats.valid_stats.hist_metrics[3],
+            'valid_macro_prec' : self.run.stats.valid_stats.hist_metrics[3],
+            'train_macro_f1' : self.run.stats.train_stats.hist_metrics[4],
+            'valid_macro_f1' : self.run.stats.valid_stats.hist_metrics[4],
         }, self.save_path / "final_epoch_model.pth.tar")
             
         
