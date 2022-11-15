@@ -57,6 +57,11 @@ class TestInferenceCallback(Callback):
         rec = recall_score(self.true_list, self.pred_list, average="macro", zero_division=1)
         acc = accuracy_score(self.true_list, self.pred_list)
 
+        print('f1: ',f1)
+        print('precision: ',prec)
+        print('recall: ',rec)
+        print('accuracy: ',acc)
+
         torch.save({
             'pred_list': self.pred_list,
             'true_list': self.true_list,
