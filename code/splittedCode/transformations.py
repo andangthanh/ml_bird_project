@@ -99,3 +99,36 @@ class DownmixMono(nn.Module):
 
     def forward(self, waveform):
         return torch.mean(waveform, dim=0, keepdim=True)
+
+
+class ToDecibels(nn.Module):
+    def __init__(self,
+                 power=2, # magnitude=1, power=2
+                 ref='max',
+                 top_db=80,
+                 normalized=True,
+                 amin=1e-7):
+        super().__init__()
+        self.constant = 10.0 if power == 2 else 20.0
+        self.ref = ref
+        self.top_db = abs(top_db) if top_db else top_db
+        self.normalized = normalized
+        self.amin = amin
+
+    def forward(self, x):
+        batch_size = x.shape[0]
+        if self.ref == 'max':
+            ref_value = x.contiguous().view(batch_size, -1).max(dim=-1)[0]  #max value per sample
+            ref_value.unsqueeze_(1).unsqueeze_(1) #reshape in form of [batchsize,1,1]
+        else:
+            ref_value = torch.tensor(self.ref)
+        spec_db = x.clamp_min(self.amin).log10_().mul_(self.constant)
+        spec_db.sub_(ref_value.clamp_min_(self.amin).log10_().mul_(10.0))
+        if self.top_db is not None:
+            max_spec = spec_db.reshape(batch_size, -1).max(dim=-1)[0]
+            max_spec.unsqueeze_(1).unsqueeze_(1)
+            spec_db = torch.max(spec_db, max_spec - self.top_db)
+            if self.normalized:
+                # normalize to [0, 1]
+                spec_db.add_(self.top_db).div_(self.top_db)
+        return spec_db
