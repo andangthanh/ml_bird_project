@@ -18,6 +18,8 @@ import multiprocessing as mp
 
 import torchaudio
 
+from settings import device
+
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 AUDIO_EXTENSIONS = ('.mp3')
 
@@ -468,6 +470,7 @@ class AudioFolder(data.Dataset):
         """
         path, target = self.samples[index]
         sample, sample_rate = self.loader(path)
+        sample.to(device)
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
