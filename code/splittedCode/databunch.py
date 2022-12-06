@@ -20,7 +20,7 @@ import torchaudio
 
 
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
-AUDIO_EXTENSIONS = ('.mp3')
+AUDIO_EXTENSIONS = ('.wav','.mp3')
 
 
 class DataBunch():
