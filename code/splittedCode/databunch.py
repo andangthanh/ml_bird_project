@@ -507,6 +507,8 @@ class WholeAudioFolder(data.Dataset):
         self,
         root: str,
         dropped_classes=[],
+        all_samples = False,
+        num_samples_per_class = 2000,
         loader = torchaudio.load,
         extensions: Optional[Tuple[str, ...]] = AUDIO_EXTENSIONS,
         transforms: Optional[Callable] = None,
@@ -518,6 +520,8 @@ class WholeAudioFolder(data.Dataset):
             root = os.path.expanduser(root)
         self.root = root
         self.dropped_classes = dropped_classes
+        self.all_samples = all_samples
+        self.num_samples_per_class = num_samples_per_class
         has_transforms = transforms is not None
         has_separate_transform = transform is not None or target_transform is not None
         if has_transforms and has_separate_transform:
@@ -607,18 +611,18 @@ class WholeAudioFolder(data.Dataset):
                         offset_pos = self.sample_offset_pos(path, 88064)
                         previous_num_samples = target_num_samples
                         target_num_samples += len(offset_pos)
-                        if target_num_samples <= 2000:
+                        if target_num_samples <= self.num_samples_per_class or self.all_samples:
                             instances.extend([(path, class_index, x) for x in offset_pos])
                         else:
-                            instances.extend([(path, class_index, x) for x in offset_pos[:2000-previous_num_samples]])
+                            instances.extend([(path, class_index, x) for x in offset_pos[:self.num_samples_per_class-previous_num_samples]])
                             break_flag = True
                             break
                     if break_flag:
                         break
                 if break_flag:
                     break
-            if target_num_samples < 2000:
-                num_duplicates = 2000 - target_num_samples
+            if target_num_samples < self.num_samples_per_class and self.all_samples == False:
+                num_duplicates = self.num_samples_per_class - target_num_samples
                 instances.extend(random.choices(instances[-target_num_samples:],k=num_duplicates))
                         
 
@@ -653,6 +657,9 @@ class WholeAudioFolder(data.Dataset):
         """
         path, target, offset = self.samples[index]
         sample, sample_rate = self.loader(path, frame_offset=offset, num_frames=88064)
+        if sample.shape[1] < 88064:
+            pad_len = 88064 - sample.shape[1]
+            sample = torch.nn.functional.pad(sample, (0,pad_len), "constant", 0)
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
