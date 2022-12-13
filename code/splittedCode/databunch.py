@@ -17,6 +17,7 @@ import ctypes
 import multiprocessing as mp
 
 import torchaudio
+import random
 
 
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
@@ -592,18 +593,34 @@ class WholeAudioFolder(data.Dataset):
         for target_class in sorted(class_to_idx.keys()):
             class_index = class_to_idx[target_class]
             target_dir = os.path.join(directory, target_class)
+            previous_num_samples = 0
+            target_num_samples = 0
+            break_flag = False
             if not os.path.isdir(target_dir):
                 continue
             for root, _, fnames in sorted(os.walk(target_dir, followlinks=True)):
                 for fname in sorted(fnames):
                     path = os.path.join(root, fname)
                     if is_valid_file(path):
-                        chunks = self.chunks(path, 176640)
-                        for chunk in chunks:
-                            instances.append(path, eintrag, class index)
-                        instances.append((path, class_index))
                         if target_class not in available_classes:
                             available_classes.add(target_class)
+                        offset_pos = self.sample_offset_pos(path, 88064)
+                        previous_num_samples = target_num_samples
+                        target_num_samples += len(offset_pos)
+                        if target_num_samples <= 2000:
+                            instances.extend([(path, class_index, x) for x in offset_pos])
+                        else:
+                            instances.extend([(path, class_index, x) for x in offset_pos[:2000-previous_num_samples]])
+                            break_flag = True
+                            break
+                    if break_flag:
+                        break
+                if break_flag:
+                    break
+            if target_num_samples < 2000:
+                num_duplicates = 2000 - target_num_samples
+                instances.extend(random.choices(instances[-target_num_samples:],k=num_duplicates))
+                        
 
         empty_classes = set(class_to_idx.keys()) - available_classes
         if empty_classes:
@@ -613,11 +630,6 @@ class WholeAudioFolder(data.Dataset):
             raise FileNotFoundError(msg)
 
         return instances
-
-    def chunks(self, path, n):
-        metadata = torchaudio.info(path)
-        for i in range(0, metadata.num_frames, n):
-            yield list(range(metadata.num_frames))[i:i+n]
 
     def find_classes(self, directory):
         classes = sorted(entry.name for entry in os.scandir(directory) if entry.is_dir())
@@ -639,8 +651,8 @@ class WholeAudioFolder(data.Dataset):
         Returns:
             tuple: (sample, target) where target is class_index of the target class.
         """
-        path, target = self.samples[index]
-        sample, sample_rate = self.loader(path, )
+        path, target, offset = self.samples[index]
+        sample, sample_rate = self.loader(path, frame_offset=offset, num_frames=88064)
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
@@ -668,3 +680,10 @@ class WholeAudioFolder(data.Dataset):
 
     def extra_repr(self) -> str:
         return ""
+
+    def sample_offset_pos(self, path, per_sample_frames):
+        num_frames = torchaudio.info(path).num_frames
+        return list(range(0,num_frames,per_sample_frames))
+
+
+
