@@ -36,10 +36,12 @@ class TestInferenceCallback(Callback):
 
     def after_fit(self):
 
+        print("TEST INFERENCE")
+        self.model.eval()
         with torch.no_grad():
             for i, batch_data in enumerate(self.run.databunch.valid_dl,0):
                 xb, yb = batch_data[0], batch_data[1]
-                y_test_pred = model(xb)
+                y_test_pred = self.model(xb)
 
                 y_pred_sig = torch.sigmoid(y_test_pred)
                 y_pred_sig = [x.detach().cpu().numpy() for x in y_pred_sig]

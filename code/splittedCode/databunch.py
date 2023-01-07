@@ -19,6 +19,10 @@ import multiprocessing as mp
 import torchaudio
 import random
 
+import librosa
+
+import scipy.ndimage as nd
+
 
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 AUDIO_EXTENSIONS = ('.wav','.mp3')
@@ -662,6 +666,7 @@ class WholeAudioFolder(data.Dataset):
             sample = torch.nn.functional.pad(sample, (0,pad_len), "constant", 0)
         if self.transform is not None:
             sample = self.transform(sample)
+            #sample = self.pre_filter(sample)
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -691,6 +696,55 @@ class WholeAudioFolder(data.Dataset):
     def sample_offset_pos(self, path, per_sample_frames):
         num_frames = torchaudio.info(path).num_frames
         return list(range(0,num_frames,per_sample_frames))
+
+    def pre_filter(self, sample):
+
+        S_narrow = sample.reshape(128,345)
+
+        freq_pixels, time_pixels = S_narrow.shape
+
+        frequencies = librosa.fft_frequencies(sr=sr, n_fft=512)
+
+        S_narrow = (S_narrow - S_narrow.min()) / (S_narrow.max() - S_narrow.min())
+        
+        print(S_narrow.shape)
+        
+        time_threshold = 3
+        frequency_threshold = 3
+
+        frequency_medians = torch.median(S_narrow, axis=1)[0]
+        time_medians = torch.median(S_narrow, axis=0)[0]
+        
+        print(time_medians)
+
+        foreground = (S_narrow >= time_threshold * time_medians[None, :]) * \
+                    (S_narrow >= frequency_threshold * frequency_medians[:, None])
+        foreground_closed = nd.binary_closing(foreground)
+        foreground_dilated = nd.binary_dilation(foreground_closed)
+
+        foreground_median_filterd = nd.median_filter(foreground_dilated, size=2)
+        print(foreground_median_filterd)
+        print(nd.generate_binary_structure(2,2))
+
+        foreground_labeled, nb_labels = nd.label(foreground_median_filterd, structure=nd.generate_binary_structure(2,2))
+
+        sizes = nd.sum(foreground_median_filterd, foreground_labeled, range(nb_labels + 1))
+        foreground_sizes = sizes < 100
+        remove_pixel = foreground_sizes[foreground_labeled]
+        foreground_labeled[remove_pixel] = 0
+
+        labels = np.unique(foreground_labeled)
+        foreground_labeled = np.searchsorted(labels, foreground_labeled)
+
+        foreground_small_objects_removed = foreground_labeled > 0
+
+        print(foreground_small_objects_removed.shape)
+        objects = nd.find_objects(foreground_labeled)
+        print(objects)
+
+        bboxes = []
+
+        
 
 
 
