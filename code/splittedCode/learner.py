@@ -73,6 +73,7 @@ class Runner():
     def __init__(self, cbs=None, cb_funcs=None, rank=None, distributed=None):
         self.rank = rank
         self.distributed = distributed
+        self.test = 0
         cbs = listify(cbs)
         for cbf in listify(cb_funcs):
             cb = cbf()
@@ -93,6 +94,10 @@ class Runner():
     def optimizer(self):       return self.learn.optimizer
 
     def one_batch(self, batch_data):
+        if self.test < 10:
+            print("test rank: ", self.rank)
+            print(torch.cuda.current_device)
+        self.test += 1 
         self.xb,self.yb = batch_data[0].to(device), batch_data[1].to(device)
         if self('begin_batch'): return
         self.optimizer.zero_grad()
