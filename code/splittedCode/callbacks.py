@@ -129,14 +129,14 @@ class StatsCallback(Callback):
     def __init__(self, metrics, save_path, plot_frequency=1, save_plots=True):
         self.train_stats = Stats(metrics, True)
         self.valid_stats = Stats(metrics, False)
-        self.plotCount = 1
+        self.plotCount = 0
         self.save_path = save_path
         self.plot_frequency = plot_frequency
         self.save_plots = save_plots 
 
     def begin_fit(self):
         if self.run.resume:
-            self.plotCount = self.run.epoch + 1
+            self.plotCount = self.run.epoch
     
     def begin_epoch(self):
         self.train_stats.reset()
@@ -171,7 +171,7 @@ class StatsCallback(Callback):
             # Plot train loss, val loss against epochs passed
             cut_at = 20
             plt.figure(figsize=(6,5))
-            plt.title("Loss over epoch No. {}".format(self.run.epoch))
+            plt.title("Loss over epoch No. {}".format(self.plotCount))
             t=np.stack(self.train_stats.hist_metrics[0])
             t=np.ma.masked_where(t > cut_at, t)
             v=np.stack(self.valid_stats.hist_metrics[0])
@@ -190,7 +190,7 @@ class StatsCallback(Callback):
 
             # Plot train acc, val acc
             plt.figure(figsize=(6,5))
-            plt.title("Accuracy over epoch No. {}".format(self.run.epoch))
+            plt.title("Accuracy over epoch No. {}".format(self.plotCount))
             plt.plot(N, self.train_stats.hist_metrics[1], label = "Training Accuracy", c='cornflowerblue')
             plt.plot(N, self.valid_stats.hist_metrics[1], label = "Valid Accuracy", c='orange')
             plt.xlabel("Epoch #")
@@ -205,7 +205,7 @@ class StatsCallback(Callback):
 
             # Plot recall and precision
             plt.figure(figsize=(6,5))
-            plt.title("Recall/Precision/F1 over epoch No. {}".format(self.run.epoch))
+            plt.title("Recall/Precision/F1 over epoch No. {}".format(self.plotCount))
             plt.plot(N, self.train_stats.hist_metrics[2], label = "Training Recall", c='cornflowerblue')
             plt.plot(N, self.valid_stats.hist_metrics[2], label = "Valid Recall", c='aqua')
             plt.plot(N, self.train_stats.hist_metrics[3], label = "Training Precision", c='red')
