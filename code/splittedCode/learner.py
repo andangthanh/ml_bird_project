@@ -146,7 +146,7 @@ class Runner():
                 if self.rank == 0 or self.rank == None:
                     with torch.no_grad():
                         if not self('begin_validate'): self.all_batches(self.databunch.valid_dl)
-                        dist.barrier
+                        dist.barrier()
                 else: 
                     dist.barrier()
                 self.epoch += 1
