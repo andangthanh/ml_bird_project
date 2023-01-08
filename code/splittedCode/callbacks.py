@@ -28,7 +28,7 @@ class UseCacheCallback(Callback):
 
 
 class TestInferenceCallback(Callback):
-    _order = 100
+    _order = 20
     def __init__(self, save_path):
         self.pred_list = []
         self.true_list = []

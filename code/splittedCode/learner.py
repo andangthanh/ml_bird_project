@@ -96,12 +96,15 @@ class Runner():
     def one_batch(self, batch_data):
         if self.test < 10:
             print("test rank: ", self.rank)
-            print(torch.cuda.current_device)
+            print(torch.cuda.current_device())
         self.test += 1 
         self.xb,self.yb = batch_data[0].to(device), batch_data[1].to(device)
         if self('begin_batch'): return
         self.optimizer.zero_grad()
-        self.pred = self.model(self.xb)
+        if not self.in_train and self.distributed:
+            self.pred = self.model.module(self.xb)
+        else:
+            self.pred = self.model(self.xb)
         if self('after_pred'): return
         self.loss = self.criterion(self.pred, self.yb)
         if self('after_loss') or not self.in_train: return
@@ -139,6 +142,7 @@ class Runner():
                 if self.rank == 0 or self.rank == None:
                     with torch.no_grad():
                         if not self('begin_validate'): self.all_batches(self.databunch.valid_dl)
+                print("Rank: ", self.rank, " finished epoch ", self.epoch)
                 self.epoch += 1
                 if self('after_epoch'): break
                  
