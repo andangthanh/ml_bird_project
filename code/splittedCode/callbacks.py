@@ -41,7 +41,7 @@ class TestInferenceCallback(Callback):
         with torch.no_grad():
             for i, batch_data in enumerate(self.run.databunch.valid_dl,0):
                 xb, yb = batch_data[0], batch_data[1]
-                y_test_pred = self.model(xb)
+                y_test_pred = self.model.module(xb)
 
                 y_pred_sig = torch.sigmoid(y_test_pred)
                 y_pred_sig = [x.detach().cpu().numpy() for x in y_pred_sig]
@@ -51,8 +51,8 @@ class TestInferenceCallback(Callback):
                 self.pred_list.append(y_pred_tag)
                 self.true_list.append(y_test_tag)
                     
-        self.pred_list = np.reshape(y_pred_list, (-1,  LEN_CLASSES))
-        self.true_list = np.reshape(y_true_list, (-1,  LEN_CLASSES))
+        self.pred_list = np.reshape(self.pred_list, (-1,  LEN_CLASSES))
+        self.true_list = np.reshape(self.true_list, (-1,  LEN_CLASSES))
 
         f1 = f1__score(self.true_list, self.pred_list, average="macro", zero_division=1)
         prec = precision_score(self.true_list, self.pred_list, average="macro", zero_division=1)

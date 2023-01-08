@@ -7,6 +7,7 @@ import torch
 import numpy as np
 import random
 from datetime import datetime
+import torch.distributed as dist
 
 def create_BirdNET(n_classes, lr=0.01):
     """Creates model, optimizer"""
@@ -134,17 +135,20 @@ class Runner():
             if self('begin_fit'): return
             while self.epoch < epochs:
                 if self.distributed != None:
-                    print("Begin Epoch: ",self.epoch," --- Rank: ", self.rank, " at: ",datetime.now().strftime("%H:%M:%S"))
+                    print("Rank: ", self.rank, " beginn epoch   ", self.epoch, " at: ",datetime.now().strftime("%H:%M:%S"))
                     np.random.seed(self.epoch)
                     random.seed(self.epoch)
                     self.databunch.train_dl.sampler.set_epoch(self.epoch)
                 if not self('begin_epoch'): self.all_batches(self.databunch.train_dl)
 
                 # validation mode
+                print("Rank: ", self.rank, " finished epoch ", self.epoch, " at: ",datetime.now().strftime("%H:%M:%S"))
                 if self.rank == 0 or self.rank == None:
                     with torch.no_grad():
                         if not self('begin_validate'): self.all_batches(self.databunch.valid_dl)
-                print("Rank: ", self.rank, " finished epoch ", self.epoch, " at: ",datetime.now().strftime("%H:%M:%S"))
+                        dist.barrier
+                else: 
+                    dist.barrier()
                 self.epoch += 1
                 if self('after_epoch'): break
                  
