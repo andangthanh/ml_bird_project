@@ -148,6 +148,7 @@ class Runner():
                         if not self('begin_validate'): self.all_batches(self.databunch.valid_dl)
                         dist.barrier()
                 else: 
+                    print("     Rank: ", self.rank)
                     dist.barrier()
                 self.epoch += 1
                 if self('after_epoch'): break
