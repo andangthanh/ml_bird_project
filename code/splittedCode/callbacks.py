@@ -5,6 +5,7 @@ import shutil
 import collections
 import re
 from helpfuncs import *
+from settings import device
 from sklearn.metrics import classification_report, f1_score, recall_score, precision_score, accuracy_score
 
 class Callback():
@@ -35,12 +36,12 @@ class TestInferenceCallback(Callback):
         self.save_path = save_path
 
     def after_fit(self):
-
         print("TEST INFERENCE")
+        print(torch.cuda.current_device())
         self.model.eval()
         with torch.no_grad():
             for i, batch_data in enumerate(self.run.databunch.valid_dl,0):
-                xb, yb = batch_data[0], batch_data[1]
+                xb, yb = batch_data[0].to(device), batch_data[1].to(device)
                 y_test_pred = self.model.module(xb)
 
                 y_pred_sig = torch.sigmoid(y_test_pred)
