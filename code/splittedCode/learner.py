@@ -160,6 +160,6 @@ class Runner():
     def __call__(self, cb_name):
         for cb in sorted(self.cbs, key=lambda x: x._order):
             f = getattr(cb, cb_name, None)
-            if f and f(): return True
-        return False
+            if f and f(): return True # if a callback function returns True this statement returns True
+        return False # if all callback functions return nothing or False the __call__ function will return False
 

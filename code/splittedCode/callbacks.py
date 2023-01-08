@@ -30,10 +30,11 @@ class UseCacheCallback(Callback):
 
 class TestInferenceCallback(Callback):
     _order = 20
-    def __init__(self, save_path):
+    def __init__(self, save_path, LEN_CLASSES):
         self.pred_list = []
         self.true_list = []
         self.save_path = save_path
+        self.LEN_CLASSES = LEN_CLASSES
 
     def after_fit(self):
         print("TEST INFERENCE")
@@ -52,10 +53,10 @@ class TestInferenceCallback(Callback):
                 self.pred_list.append(y_pred_tag)
                 self.true_list.append(y_test_tag)
                     
-        self.pred_list = np.reshape(self.pred_list, (-1,  LEN_CLASSES))
-        self.true_list = np.reshape(self.true_list, (-1,  LEN_CLASSES))
+        self.pred_list = np.reshape(self.pred_list, (-1,  self.LEN_CLASSES))
+        self.true_list = np.reshape(self.true_list, (-1,  self.LEN_CLASSES))
 
-        f1 = f1__score(self.true_list, self.pred_list, average="macro", zero_division=1)
+        f1 = f1_score(self.true_list, self.pred_list, average="macro", zero_division=1)
         prec = precision_score(self.true_list, self.pred_list, average="macro", zero_division=1)
         rec = recall_score(self.true_list, self.pred_list, average="macro", zero_division=1)
         acc = accuracy_score(self.true_list, self.pred_list)
