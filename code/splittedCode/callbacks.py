@@ -78,7 +78,7 @@ class TestInferenceCallback(Callback):
         with open(self.save_path / "report.txt", "a") as f:
             print(classification_report(self.true_list, self.pred_list, zero_division=1), file=f)
 
-        cm = confusion_matrix(self.true_list, self.pred_list, labels=self.target_names)
+        cm = confusion_matrix(np.argmax(self.true_list, axis=1), np.argmax(self.pred_list, axis=1), labels=self.target_names)
         confusion_matrix_df = pd.DataFrame(cm)
         fig, ax = plt.subplots(figsize=(12,12))         
         sns.heatmap(confusion_matrix_df, annot=True, ax=ax, fmt="d")
