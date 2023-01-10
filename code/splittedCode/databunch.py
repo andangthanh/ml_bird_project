@@ -717,7 +717,7 @@ class WholeAudioFolder(data.Dataset):
             frequency_threshold = 3
 
             frequency_medians = torch.median(S_narrow, axis=1)[0] #  torch.median(s, axis)will return a tuple of (values, indices)?, no axis paramter(dim?)
-            time_medians = torch.median(S_narrow, axis=0)
+            time_medians = torch.median(S_narrow, axis=0)[0]
             
             print("frequency_medians shape", frequency_medians.shape)
             print("time_medians shape", time_medians.shape)
