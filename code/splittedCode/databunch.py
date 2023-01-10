@@ -669,7 +669,7 @@ class WholeAudioFolder(data.Dataset):
             sample = torch.nn.functional.pad(sample, (0,pad_len), "constant", 0)
         if self.transform is not None:
             sample = self.transform(sample)
-            #sample = self.pre_filter(path, sample, offset, sr, target, 3)
+            sample = self.pre_filter(path, sample, offset, sample_rate, target, 3)
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -716,7 +716,7 @@ class WholeAudioFolder(data.Dataset):
             time_threshold = 3
             frequency_threshold = 3
 
-            frequency_medians = torch.median(S_narrow, axis=1)
+            frequency_medians = torch.median(S_narrow, axis=1)[0] #  torch.median(s, axis)will return a tuple of (values, indices)?, no axis paramter(dim?)
             time_medians = torch.median(S_narrow, axis=0)
             
             print("frequency_medians shape", frequency_medians.shape)
