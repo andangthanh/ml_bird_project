@@ -6,7 +6,10 @@ import collections
 import re
 from helpfuncs import *
 from settings import device
-from sklearn.metrics import classification_report, f1_score, recall_score, precision_score, accuracy_score
+from sklearn.metrics import classification_report, f1_score, recall_score, precision_score, accuracy_score, confusion_matrix
+import pandas as pd
+import seaborn as sns
+
 
 class Callback():
     _order = 0
@@ -30,11 +33,12 @@ class UseCacheCallback(Callback):
 
 class TestInferenceCallback(Callback):
     _order = 20
-    def __init__(self, save_path, LEN_CLASSES):
+    def __init__(self, save_path, LEN_CLASSES, target_names):
         self.pred_list = []
         self.true_list = []
         self.save_path = save_path
         self.LEN_CLASSES = LEN_CLASSES
+        self.target_names = target_names
 
     def after_fit(self):
         print("TEST INFERENCE")
@@ -66,6 +70,23 @@ class TestInferenceCallback(Callback):
         print('recall: ',rec)
         print('accuracy: ',acc)
 
+        report = classification_report(self.true_list, self.pred_list, target_names=self.target_names, output_dict=True, zero_division=1)
+        report.update({"accuracy": {"precision": None, "recall": None, "f1-score": report["accuracy"], "support": report['macro avg']['support']}})
+        df = pd.DataFrame(report).transpose()
+        df.to_csv(self.save_path / "report.csv")
+        
+        with open(self.save_path / "report.txt", "a") as f:
+            print(classification_report(self.true_list, self.pred_list, zero_division=1), file=f)
+
+        cm = confusion_matrix(self.true_list, self.pred_list, labels=self.target_names)
+        confusion_matrix_df = pd.DataFrame(cm)
+        fig, ax = plt.subplots(figsize=(12,12))         
+        sns.heatmap(confusion_matrix_df, annot=True, ax=ax, fmt="d")
+        fig.savefig(self.save_path / "confusion_matrix.eps", format = 'eps', bbox_inches = "tight")
+        fig.savefig(self.save_path / "confusion_matrix.pdf", format = 'pdf', bbox_inches = "tight")
+        fig.savefig(self.save_path / "confusion_matrix.png", format = 'png', bbox_inches = "tight")
+        plt.close()
+
         torch.save({
             'pred_list': self.pred_list,
             'true_list': self.true_list,
@@ -73,7 +94,10 @@ class TestInferenceCallback(Callback):
             'accuracy': acc,
             'precision': prec,
             'recall': rec,
+            'report': report,
+            'confusion_matrix': cm
         }, self.save_path / "test_inference.pth.tar")
+
 
 
 
