@@ -71,7 +71,7 @@ class TestInferenceCallback(Callback):
         print('accuracy: ',acc)
 
         report = classification_report(self.true_list, self.pred_list, target_names=self.target_names, output_dict=True, zero_division=1)
-        report.update({"accuracy": {"precision": None, "recall": None, "f1-score": report["accuracy"], "support": report['macro avg']['support']}})
+
         df = pd.DataFrame(report).transpose()
         df.to_csv(self.save_path / "report.csv")
         
