@@ -669,7 +669,7 @@ class WholeAudioFolder(data.Dataset):
             sample = torch.nn.functional.pad(sample, (0,pad_len), "constant", 0)
         if self.transform is not None:
             sample = self.transform(sample)
-            sample = self.pre_filter(path, sample, offset, sample_rate, target, 3)
+            sample = self.pre_filter(path, sample, offset, target, 3)
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -700,7 +700,7 @@ class WholeAudioFolder(data.Dataset):
         num_frames = torchaudio.info(path).num_frames
         return list(range(0,num_frames,per_sample_frames))
 
-    def pre_filter(self, path ,sample, offset, sr, target, n_attempts):
+    def pre_filter(self, path , sample, offset, target, n_attempts):
 
         if n_attempts > 0:
             S_narrow = sample.reshape(128,345)
@@ -752,16 +752,16 @@ class WholeAudioFolder(data.Dataset):
                 print("bboxes are empty, find new sample! target: ",target," offset: ",offset," path: ",path)
                 start_id, end_id = self.class_idx_to_indices[target]
                 new_index = random.randint(start_id, end_id)
-                path, new_target, new_offset = self.samples[new_index]
+                new_path, new_target, new_offset = self.samples[new_index]
                 if new_target != target:
                     print("FEHLER, new_target ist ungleich altes target -- new_target: ",new_target,"--- altes target: ", target)
-                new_sample, new_sample_rate = self.loader(path, frame_offset=new_offset, num_frames=88064)
+                new_sample, new_sample_rate = self.loader(new_path, frame_offset=new_offset, num_frames=88064)
                 if new_sample.shape[1] < 88064:
                     pad_len = 88064 - new_sample.shape[1]
                     new_sample = torch.nn.functional.pad(new_sample, (0,pad_len), "constant", 0)
                 if self.transform is not None:
                     new_sample = self.transform(new_sample)
-                    new_sample = self.pre_filter(new_sample, new_sample_rate, new_offset, new_target, n_attempts-1)
+                    new_sample = self.pre_filter(new_path ,new_sample, new_offset, new_target, n_attempts-1)
             else:
                 return sample
         else:
