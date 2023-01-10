@@ -542,7 +542,7 @@ class WholeAudioFolder(data.Dataset):
         self.classes, self.class_to_idx = self.find_classes(self.root)
         self.loader = loader
         self.extensions = extensions
-        self.samples = self.make_dataset(self.root, self.class_to_idx, self.extensions, is_valid_file)
+        self.samples, self.class_idx_to_indices = self.make_dataset(self.root, self.class_to_idx, self.extensions, is_valid_file)
 
         self.targets = [s[1] for s in self.samples]
 
@@ -597,6 +597,8 @@ class WholeAudioFolder(data.Dataset):
         is_valid_file = cast(Callable[[str], bool], is_valid_file)
 
         instances = []
+        class_idx_to_indices = dict()
+        starting_idx_of_current_class = 0
         available_classes = set()
         for target_class in sorted(class_to_idx.keys()):
             class_index = class_to_idx[target_class]
@@ -628,8 +630,9 @@ class WholeAudioFolder(data.Dataset):
             if target_num_samples < self.num_samples_per_class and self.all_samples == False:
                 num_duplicates = self.num_samples_per_class - target_num_samples
                 instances.extend(random.choices(instances[-target_num_samples:],k=num_duplicates))
+            class_idx_to_indices[class_index] = [starting_idx_of_current_class, len(instances)-1]
+            starting_idx_of_current_class = len(instances)
                         
-
         empty_classes = set(class_to_idx.keys()) - available_classes
         if empty_classes:
             msg = f"Found no valid file for the classes {', '.join(sorted(empty_classes))}. "
@@ -637,7 +640,7 @@ class WholeAudioFolder(data.Dataset):
                 msg += f"Supported extensions are: {extensions if isinstance(extensions, str) else ', '.join(extensions)}"
             raise FileNotFoundError(msg)
 
-        return instances
+        return instances, class_to_indices
 
     def find_classes(self, directory):
         classes = sorted(entry.name for entry in os.scandir(directory) if entry.is_dir())
@@ -666,7 +669,7 @@ class WholeAudioFolder(data.Dataset):
             sample = torch.nn.functional.pad(sample, (0,pad_len), "constant", 0)
         if self.transform is not None:
             sample = self.transform(sample)
-            #sample = self.pre_filter(sample)
+            #sample = self.pre_filter(path, sample, offset, sr, target, 3)
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -697,52 +700,75 @@ class WholeAudioFolder(data.Dataset):
         num_frames = torchaudio.info(path).num_frames
         return list(range(0,num_frames,per_sample_frames))
 
-    def pre_filter(self, sample):
+    def pre_filter(self, path ,sample, offset, sr, target, n_attempts):
 
-        S_narrow = sample.reshape(128,345)
+        if n_attempts > 0:
+            S_narrow = sample.reshape(128,345)
 
-        freq_pixels, time_pixels = S_narrow.shape
+            #freq_pixels, time_pixels = S_narrow.shape
 
-        frequencies = librosa.fft_frequencies(sr=sr, n_fft=512)
+            #frequencies = librosa.fft_frequencies(sr=sr, n_fft=512)
 
-        S_narrow = (S_narrow - S_narrow.min()) / (S_narrow.max() - S_narrow.min())
-        
-        print(S_narrow.shape)
-        
-        time_threshold = 3
-        frequency_threshold = 3
+            S_narrow = (S_narrow - S_narrow.min()) / (S_narrow.max() - S_narrow.min())
+            
+            print(S_narrow.shape)
+            
+            time_threshold = 3
+            frequency_threshold = 3
 
-        frequency_medians = torch.median(S_narrow, axis=1)[0]
-        time_medians = torch.median(S_narrow, axis=0)[0]
-        
-        print(time_medians)
+            frequency_medians = torch.median(S_narrow, axis=1)
+            time_medians = torch.median(S_narrow, axis=0)
+            
+            print("frequency_medians shape", frequency_medians.shape)
+            print("time_medians shape", time_medians.shape)
 
-        foreground = (S_narrow >= time_threshold * time_medians[None, :]) * \
-                    (S_narrow >= frequency_threshold * frequency_medians[:, None])
-        foreground_closed = nd.binary_closing(foreground)
-        foreground_dilated = nd.binary_dilation(foreground_closed)
+            foreground = (S_narrow >= time_threshold * time_medians[None, :]) * \
+                        (S_narrow >= frequency_threshold * frequency_medians[:, None])
+            foreground_closed = nd.binary_closing(foreground)
+            foreground_dilated = nd.binary_dilation(foreground_closed)
 
-        foreground_median_filterd = nd.median_filter(foreground_dilated, size=2)
-        print(foreground_median_filterd)
-        print(nd.generate_binary_structure(2,2))
+            foreground_median_filterd = nd.median_filter(foreground_dilated, size=2)
+            print("foreground_median_filterd",foreground_median_filterd)
+            print("nd.generate_binary_structure(2,2)",nd.generate_binary_structure(2,2))
 
-        foreground_labeled, nb_labels = nd.label(foreground_median_filterd, structure=nd.generate_binary_structure(2,2))
+            foreground_labeled, nb_labels = nd.label(foreground_median_filterd, structure=nd.generate_binary_structure(2,2))
 
-        sizes = nd.sum(foreground_median_filterd, foreground_labeled, range(nb_labels + 1))
-        foreground_sizes = sizes < 100
-        remove_pixel = foreground_sizes[foreground_labeled]
-        foreground_labeled[remove_pixel] = 0
+            sizes = nd.sum(foreground_median_filterd, foreground_labeled, range(nb_labels + 1))
+            foreground_sizes = sizes < 100
+            remove_pixel = foreground_sizes[foreground_labeled]
+            foreground_labeled[remove_pixel] = 0
 
-        labels = np.unique(foreground_labeled)
-        foreground_labeled = np.searchsorted(labels, foreground_labeled)
+            labels = np.unique(foreground_labeled)
+            foreground_labeled = np.searchsorted(labels, foreground_labeled)
 
-        foreground_small_objects_removed = foreground_labeled > 0
+            #foreground_small_objects_removed = foreground_labeled > 0
 
-        print(foreground_small_objects_removed.shape)
-        objects = nd.find_objects(foreground_labeled)
-        print(objects)
+            #print(foreground_small_objects_removed.shape)
+            objects = nd.find_objects(foreground_labeled)
+            print(objects)
 
-        bboxes = []
+            #bboxes = []
+            if not objects: 
+                print("bboxes are empty, find new sample! target: ",target," offset: ",offset," path: ",path)
+                start_id, end_id = self.class_idx_to_indices[target]
+                new_index = random.randint(start_id, end_id)
+                path, new_target, new_offset = self.samples[new_index]
+                if new_target != target:
+                    print("FEHLER, new_target ist ungleich altes target -- new_target: ",new_target,"--- altes target: ", target)
+                new_sample, new_sample_rate = self.loader(path, frame_offset=new_offset, num_frames=88064)
+                if new_sample.shape[1] < 88064:
+                    pad_len = 88064 - new_sample.shape[1]
+                    new_sample = torch.nn.functional.pad(new_sample, (0,pad_len), "constant", 0)
+                if self.transform is not None:
+                    new_sample = self.transform(new_sample)
+                    new_sample = self.pre_filter(new_sample, new_sample_rate, new_offset, new_target, n_attempts-1)
+            else:
+                return sample
+        else:
+            print("reached n_attemps, pre_filter unsuccesful, up n_attemps or tune parameter of pre_filter")
+            return sample
+
+
 
         
 

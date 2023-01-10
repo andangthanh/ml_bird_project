@@ -33,12 +33,13 @@ class UseCacheCallback(Callback):
 
 class TestInferenceCallback(Callback):
     _order = 20
-    def __init__(self, save_path, LEN_CLASSES, target_names):
+    def __init__(self, save_path, LEN_CLASSES, target_names, idx2class):
         self.pred_list = []
         self.true_list = []
         self.save_path = save_path
         self.LEN_CLASSES = LEN_CLASSES
         self.target_names = target_names
+        self.idx2class = idx2class
 
     def after_fit(self):
         print("TEST INFERENCE")
@@ -78,13 +79,15 @@ class TestInferenceCallback(Callback):
         with open(self.save_path / "report.txt", "a") as f:
             print(classification_report(self.true_list, self.pred_list, zero_division=1), file=f)
 
-        cm = confusion_matrix(np.argmax(self.true_list, axis=1), np.argmax(self.pred_list, axis=1), labels=self.target_names)
-        confusion_matrix_df = pd.DataFrame(cm)
+        # probably needs to be changed later or omitted
+        cm = confusion_matrix(np.argmax(self.true_list, axis=1), np.argmax(self.pred_list, axis=1))
+        confusion_matrix_df = pd.DataFrame(cm).rename(columns=self.idx2class, index=self.idx2class)
         fig, ax = plt.subplots(figsize=(12,12))         
         sns.heatmap(confusion_matrix_df, annot=True, ax=ax, fmt="d")
-        fig.savefig(self.save_path / "confusion_matrix.eps", format = 'eps', bbox_inches = "tight")
-        fig.savefig(self.save_path / "confusion_matrix.pdf", format = 'pdf', bbox_inches = "tight")
-        fig.savefig(self.save_path / "confusion_matrix.png", format = 'png', bbox_inches = "tight")
+        plt.tight_layout()
+        fig.savefig(self.save_path / "confusion_matrix.eps", format = 'eps')
+        fig.savefig(self.save_path / "confusion_matrix.pdf", format = 'pdf')
+        fig.savefig(self.save_path / "confusion_matrix.png", format = 'png')
         plt.close()
 
         torch.save({
