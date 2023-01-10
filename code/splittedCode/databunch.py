@@ -640,7 +640,7 @@ class WholeAudioFolder(data.Dataset):
                 msg += f"Supported extensions are: {extensions if isinstance(extensions, str) else ', '.join(extensions)}"
             raise FileNotFoundError(msg)
 
-        return instances, class_to_indices
+        return instances, class_idx_to_indices
 
     def find_classes(self, directory):
         classes = sorted(entry.name for entry in os.scandir(directory) if entry.is_dir())
