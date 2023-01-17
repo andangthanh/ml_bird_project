@@ -807,4 +807,4 @@ class PreFilterAudioFolder(WholeAudioFolder):
         for path, valid_offsets in self.dictionary.items():
             for offset, end, class_index in valid_offsets:
                 instances.append([(path, class_index, offset)])
-        return instances
+        return instances, []
