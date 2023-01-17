@@ -769,8 +769,41 @@ class WholeAudioFolder(data.Dataset):
             return sample
 
 
-
-        
-
+class PreFilterAudioFolder(WholeAudioFolder):
 
 
+    def __init__(
+        self,
+        root: str,
+        dictionary,
+        dropped_classes=[],
+        all_samples = False,
+        num_samples_per_class = 2000,
+        loader = torchaudio.load,
+        extensions: Optional[Tuple[str, ...]] = AUDIO_EXTENSIONS,
+        transforms: Optional[Callable] = None,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        is_valid_file: Optional[Callable[[str], bool]] = None,
+        ):
+        super().__init__(
+            root,
+            dropped_classes,
+            all_samples,
+            num_samples_per_class,
+            loader,
+            extensions,
+            transforms,
+            transform,
+            target_transform,
+            is_valid_file,
+        )
+
+        self.dictionary = dictionary
+
+    def make_dataset(self, directory: str, class_to_idx: Dict[str, int], extensions: Optional[Tuple[str, ...]] = None, is_valid_file: Optional[Callable[[str], bool]] = None) -> List[Tuple[str, int]]:
+        instances = []
+        for path, valid_offsets in self.dictionary.items():
+            for offset, end, class_index in valid_offsets:
+                instances.append([(path, class_index, offset)])
+        return instances
