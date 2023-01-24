@@ -804,7 +804,7 @@ class PreFilterAudioFolder(WholeAudioFolder):
 
     def make_dataset(self, directory: str, class_to_idx: Dict[str, int], extensions: Optional[Tuple[str, ...]] = None, is_valid_file: Optional[Callable[[str], bool]] = None) -> List[Tuple[str, int]]:
         instances = []
-        for path, valid_offsets in self.dictionary.items():
-            for offset, end, class_index in valid_offsets:
-                instances.append([(path, class_index, offset)])
+        for path, object in self.dictionary.items():
+            for wav_mid_x, freq_mid_y, (slice_y, slice_x), class_index in object:
+                instances.append([(path, class_index, wav_mid_x)])
         return instances, []
