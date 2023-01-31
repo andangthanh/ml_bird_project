@@ -669,7 +669,7 @@ class WholeAudioFolder(data.Dataset):
             sample = torch.nn.functional.pad(sample, (0,pad_len), "constant", 0)
         if self.transform is not None:
             sample = self.transform(sample)
-            sample = self.pre_filter(path, sample, offset, target, 3)
+            #sample = self.pre_filter(path, sample, offset, target, 3)
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -777,6 +777,7 @@ class PreFilterAudioFolder(WholeAudioFolder):
         self,
         root: str,
         dictionary,
+        center = True,
         dropped_classes=[],
         all_samples = False,
         num_samples_per_class = 2000,
@@ -787,6 +788,9 @@ class PreFilterAudioFolder(WholeAudioFolder):
         target_transform: Optional[Callable] = None,
         is_valid_file: Optional[Callable[[str], bool]] = None,
         ):
+        self.center = center
+        self.dictionary = dictionary
+
         super().__init__(
             root,
             dropped_classes,
@@ -800,11 +804,14 @@ class PreFilterAudioFolder(WholeAudioFolder):
             is_valid_file,
         )
 
-        self.dictionary = dictionary
-
     def make_dataset(self, directory: str, class_to_idx: Dict[str, int], extensions: Optional[Tuple[str, ...]] = None, is_valid_file: Optional[Callable[[str], bool]] = None) -> List[Tuple[str, int]]:
         instances = []
-        for path, object in self.dictionary.items():
-            for wav_mid_x, freq_mid_y, (slice_y, slice_x), class_index in object:
-                instances.append([(path, class_index, wav_mid_x)])
-        return instances, []
+        for target, objects in self.dictionary.items():
+            target_num_samples = 0
+            for wav_mid_x, freq_mid_y, (slice_y, slice_x), path in objects:
+                if self.center:
+                    offset = max(int(wav_mid_x)-(88064//2), 0)
+                if target_num_samples < self.num_samples_per_class or self.all_samples:
+                    instances.append((path, target, offset))
+                    target_num_samples += 1
+        return instances, None

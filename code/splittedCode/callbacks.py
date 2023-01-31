@@ -33,13 +33,14 @@ class UseCacheCallback(Callback):
 
 class TestInferenceCallback(Callback):
     _order = 20
-    def __init__(self, save_path, LEN_CLASSES, target_names, idx2class):
+    def __init__(self, save_path, LEN_CLASSES, target_names, idx2class, distributed=True):
         self.pred_list = []
         self.true_list = []
         self.save_path = save_path
         self.LEN_CLASSES = LEN_CLASSES
         self.target_names = target_names
         self.idx2class = idx2class
+        self.distributed = distributed
 
     def after_fit(self):
         print("TEST INFERENCE")
@@ -48,7 +49,10 @@ class TestInferenceCallback(Callback):
         with torch.no_grad():
             for i, batch_data in enumerate(self.run.databunch.valid_dl,0):
                 xb, yb = batch_data[0].to(device), batch_data[1].to(device)
-                y_test_pred = self.model.module(xb)
+                if self.distributed:
+                    y_test_pred = self.model.module(xb)
+                else:
+                    y_test_pred = self.model(xb)
 
                 y_pred_sig = torch.sigmoid(y_test_pred)
                 y_pred_sig = [x.detach().cpu().numpy() for x in y_pred_sig]

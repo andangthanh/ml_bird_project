@@ -75,7 +75,6 @@ class Runner():
     def __init__(self, cbs=None, cb_funcs=None, rank=None, distributed=None):
         self.rank = rank
         self.distributed = distributed
-        self.test = 0
         cbs = listify(cbs)
         for cbf in listify(cb_funcs):
             cb = cbf()
@@ -96,10 +95,6 @@ class Runner():
     def optimizer(self):       return self.learn.optimizer
 
     def one_batch(self, batch_data):
-        if self.test < 10:
-            print("test rank: ", self.rank)
-            print(torch.cuda.current_device())
-        self.test += 1 
         self.xb,self.yb = batch_data[0].to(device), batch_data[1].to(device)
         if self('begin_batch'): return
         self.optimizer.zero_grad()
@@ -135,22 +130,24 @@ class Runner():
             if self('begin_fit'): return
             while self.epoch < epochs:
                 if self.distributed != None:
-                    print("Rank: ", self.rank, " beginn epoch   ", self.epoch, " at: ",datetime.now().strftime("%H:%M:%S"))
+                    #print("Rank: ", self.rank, " beginn epoch   ", self.epoch, " at: ",datetime.now().strftime("%H:%M:%S"))
                     np.random.seed(self.epoch)
                     random.seed(self.epoch)
                     self.databunch.train_dl.sampler.set_epoch(self.epoch)
                 if not self('begin_epoch'): self.all_batches(self.databunch.train_dl)
 
                 # validation mode
-                print("Rank: ", self.rank, " finished epoch ", self.epoch, " at: ",datetime.now().strftime("%H:%M:%S"))
+                #print("Rank: ", self.rank, " finished epoch ", self.epoch, " at: ",datetime.now().strftime("%H:%M:%S"))
                 if self.rank == 0 or self.rank == None:
                     with torch.no_grad():
                         if not self('begin_validate'): self.all_batches(self.databunch.valid_dl)
-                        print("     Rank: ", self.rank, " epoch: ", self.epoch)
-                        dist.barrier()
+                        #print("     Rank: ", self.rank, " epoch: ", self.epoch)
+                        if self.distributed:
+                            dist.barrier()
                 else: 
-                    print("     Rank: ", self.rank, " epoch: ", self.epoch)
-                    dist.barrier()
+                    #print("     Rank: ", self.rank, " epoch: ", self.epoch)
+                    if self.distributed:
+                        dist.barrier()
                 self.epoch += 1
                 if self('after_epoch'): break
                  
