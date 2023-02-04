@@ -808,10 +808,33 @@ class PreFilterAudioFolder(WholeAudioFolder):
         instances = []
         for target, objects in self.dictionary.items():
             target_num_samples = 0
-            for wav_mid_x, freq_mid_y, (slice_y, slice_x), path in objects:
-                if self.center:
-                    offset = max(int(wav_mid_x)-(88064//2), 0)
+            for sample_dir in objects:
                 if target_num_samples < self.num_samples_per_class or self.all_samples:
-                    instances.append((path, target, offset))
+                    instances.append((sample_dir.get("path"), target, sample_dir.get("center_point"), sample_dir.get("wav_x")))
                     target_num_samples += 1
         return instances, None
+                                 
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (sample, target) where target is class_index of the target class.
+        """
+        path, target, center_point, wav_x = self.samples[index]
+        if self.center:
+            offset = max(center_point[0]-(88064//2), 0)
+        else:
+            offset = random.randint(max(wav_x[1]-88064,0) ,wav_x[0])     
+        sample, sample_rate = self.loader(path, frame_offset=offset, num_frames=88064)
+        if sample.shape[1] < 88064:
+            pad_len = 88064 - sample.shape[1]
+            sample = torch.nn.functional.pad(sample, (0,pad_len), "constant", 0)
+        if self.transform is not None:
+            sample = self.transform(sample)
+            self.pre_filter(path, sample, offset, target)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return sample, target
