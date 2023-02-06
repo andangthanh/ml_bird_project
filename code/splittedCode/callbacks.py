@@ -9,6 +9,7 @@ from settings import device
 from sklearn.metrics import classification_report, f1_score, recall_score, precision_score, accuracy_score, confusion_matrix
 import pandas as pd
 import seaborn as sns
+from collections import OrderedDict
 
 
 class Callback():
@@ -33,26 +34,36 @@ class UseCacheCallback(Callback):
 
 class TestInferenceCallback(Callback):
     _order = 20
-    def __init__(self, save_path, LEN_CLASSES, target_names, idx2class, distributed=True):
+    def __init__(self, save_path, LEN_CLASSES, target_names, idx2class, model_class):
         self.pred_list = []
         self.true_list = []
         self.save_path = save_path
         self.LEN_CLASSES = LEN_CLASSES
         self.target_names = target_names
         self.idx2class = idx2class
-        self.distributed = distributed
+        self.model_class = model_class
 
     def after_fit(self):
         print("TEST INFERENCE")
         print(torch.cuda.current_device())
-        self.model.eval()
+
+        model = self.model_class()
+        best_model_cp = torch.load(self.save_path / "model_best.pth.tar")
+        new_state_dict = OrderedDict()
+        for k, v in best_model_cp['state_dict'].items():
+            name = k[7:]
+            new_state_dict[name] = v
+            
+        model.load_state_dict(new_state_dict)
+        model.to(device)
+        
+
+        model.eval()
         with torch.no_grad():
             for i, batch_data in enumerate(self.run.databunch.valid_dl,0):
                 xb, yb = batch_data[0].to(device), batch_data[1].to(device)
-                if self.distributed:
-                    y_test_pred = self.model.module(xb)
-                else:
-                    y_test_pred = self.model(xb)
+
+                y_test_pred = model(xb)
 
                 y_pred_sig = torch.sigmoid(y_test_pred)
                 y_pred_sig = [x.detach().cpu().numpy() for x in y_pred_sig]
@@ -65,9 +76,9 @@ class TestInferenceCallback(Callback):
         self.pred_list = np.reshape(self.pred_list, (-1,  self.LEN_CLASSES))
         self.true_list = np.reshape(self.true_list, (-1,  self.LEN_CLASSES))
 
-        f1 = f1_score(self.true_list, self.pred_list, average="macro", zero_division=1)
-        prec = precision_score(self.true_list, self.pred_list, average="macro", zero_division=1)
-        rec = recall_score(self.true_list, self.pred_list, average="macro", zero_division=1)
+        f1 = f1_score(self.true_list, self.pred_list, average="weighted", zero_division=1)
+        prec = precision_score(self.true_list, self.pred_list, average="weighted", zero_division=1)
+        rec = recall_score(self.true_list, self.pred_list, average="weighted", zero_division=1)
         acc = accuracy_score(self.true_list, self.pred_list)
 
         print('f1: ',f1)
@@ -82,6 +93,28 @@ class TestInferenceCallback(Callback):
         
         with open(self.save_path / "report.txt", "a") as f:
             print(classification_report(self.true_list, self.pred_list, zero_division=1), file=f)
+            print(file=f)
+            print("Epoch: ",best_model_cp['epoch'], file=f)
+            print("Best loss: ",best_model_cp['best_loss'], file=f)
+            print(file=f)
+            print("Train loss last entry: ",best_model_cp['train_loss_his'][-1], file=f)
+            print("Valid loss last entry: ",best_model_cp['valid_loss_his'][-1], file=f)
+            print(file=f)
+            print("Train acc last entry: ",best_model_cp['train_acc'][-1], file=f)
+            print("Valid acc last entry: ",best_model_cp['valid_acc'][-1], file=f)
+            print(file=f)
+            print("Train acc last entry: ",best_model_cp['train_acc'][-1], file=f)
+            print("Valid acc last entry: ",best_model_cp['valid_acc'][-1], file=f)
+            print(file=f)
+            print("Train weighted recall last entry: ",best_model_cp['train_weighted_rec'][-1], file=f)
+            print("Valid weighted recall last entry: ",best_model_cp['valid_weighted_rec'][-1], file=f)
+            print(file=f)
+            print("Train weighted precision last entry: ",best_model_cp['train_weighted_prec'][-1], file=f)
+            print("Valid weighted precision last entry: ",best_model_cp['valid_weighted_prec'][-1], file=f)
+            print(file=f)
+            print("Train weighted F1 last entry: ",best_model_cp['train_weighted_f1'][-1], file=f)
+            print("Valid weighted F1 last entry: ",best_model_cp['valid_weighted_f1'][-1], file=f)
+
 
         # probably needs to be changed later or omitted
         cm = confusion_matrix(np.argmax(self.true_list, axis=1), np.argmax(self.pred_list, axis=1))
@@ -283,12 +316,12 @@ class SaveCheckpointCallback(Callback):
             'valid_loss_his' : self.run.stats.valid_stats.hist_metrics[0],
             'train_acc' : self.run.stats.train_stats.hist_metrics[1],
             'valid_acc' : self.run.stats.valid_stats.hist_metrics[1],
-            'train_macro_rec' : self.run.stats.train_stats.hist_metrics[2],
-            'valid_macro_rec' : self.run.stats.valid_stats.hist_metrics[2],
-            'train_macro_prec' : self.run.stats.train_stats.hist_metrics[3],
-            'valid_macro_prec' : self.run.stats.valid_stats.hist_metrics[3],
-            'train_macro_f1' : self.run.stats.train_stats.hist_metrics[4],
-            'valid_macro_f1' : self.run.stats.valid_stats.hist_metrics[4],
+            'train_weighted_rec' : self.run.stats.train_stats.hist_metrics[2],
+            'valid_weighted_rec' : self.run.stats.valid_stats.hist_metrics[2],
+            'train_weighted_prec' : self.run.stats.train_stats.hist_metrics[3],
+            'valid_weighted_prec' : self.run.stats.valid_stats.hist_metrics[3],
+            'train_weighted_f1' : self.run.stats.train_stats.hist_metrics[4],
+            'valid_weighted_f1' : self.run.stats.valid_stats.hist_metrics[4],
         }, is_best, filename=self.save_path / "checkpoint.pth.tar")
         
     def after_fit(self):
@@ -302,12 +335,12 @@ class SaveCheckpointCallback(Callback):
             'valid_loss_his' : self.run.stats.valid_stats.hist_metrics[0],
             'train_acc' : self.run.stats.train_stats.hist_metrics[1],
             'valid_acc' : self.run.stats.valid_stats.hist_metrics[1],
-            'train_macro_rec' : self.run.stats.train_stats.hist_metrics[2],
-            'valid_macro_rec' : self.run.stats.valid_stats.hist_metrics[2],
-            'train_macro_prec' : self.run.stats.train_stats.hist_metrics[3],
-            'valid_macro_prec' : self.run.stats.valid_stats.hist_metrics[3],
-            'train_macro_f1' : self.run.stats.train_stats.hist_metrics[4],
-            'valid_macro_f1' : self.run.stats.valid_stats.hist_metrics[4],
+            'train_weighted_rec' : self.run.stats.train_stats.hist_metrics[2],
+            'valid_weighted_rec' : self.run.stats.valid_stats.hist_metrics[2],
+            'train_weighted_prec' : self.run.stats.train_stats.hist_metrics[3],
+            'valid_weighted_prec' : self.run.stats.valid_stats.hist_metrics[3],
+            'train_weighted_f1' : self.run.stats.train_stats.hist_metrics[4],
+            'valid_weighted_f1' : self.run.stats.valid_stats.hist_metrics[4],
         }, self.save_path / "final_epoch_model.pth.tar")
             
         

@@ -33,21 +33,21 @@ def f1_score_multi_label(pred, yb):
     pred_list = [x.detach().cpu().numpy() for x in pred]
     pred_list = np.around(pred_list)
     true_list = [x.detach().cpu().numpy() for x in yb]
-    return f1_score(true_list, pred_list, average='macro', zero_division=1)
+    return f1_score(true_list, pred_list, average='weighted', zero_division=1)
 
 def recall_score_multi_label(pred, yb):
     pred = torch.sigmoid(pred)
     pred_list = [x.detach().cpu().numpy() for x in pred]
     pred_list = np.around(pred_list)
     true_list = [x.detach().cpu().numpy() for x in yb]
-    return recall_score(true_list, pred_list, average='macro', zero_division=1)
+    return recall_score(true_list, pred_list, average='weighted', zero_division=1)
 
 def precision_score_multi_label(pred, yb):
     pred = torch.sigmoid(pred)
     pred_list = [x.detach().cpu().numpy() for x in pred]
     pred_list = np.around(pred_list)
     true_list = [x.detach().cpu().numpy() for x in yb]
-    return precision_score(true_list, pred_list, average='macro', zero_division=1)
+    return precision_score(true_list, pred_list, average='weighted', zero_division=1)
 
 def accuracy_score_multi_label(pred, yb):
     pred = torch.sigmoid(pred)

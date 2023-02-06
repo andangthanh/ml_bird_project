@@ -54,7 +54,7 @@ def ddp_create_ResNet50(n_classes, lr=0.01, pretrained=True, args=None):
     model = ResNet50(n_classes, pretrained)
     torch.cuda.set_device(args.gpu)
     model.cuda(args.gpu)
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
     #model_without_ddp = model.module
     
     optimizer = optim.AdamW(model.parameters(), lr=lr)

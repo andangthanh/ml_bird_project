@@ -833,7 +833,6 @@ class PreFilterAudioFolder(WholeAudioFolder):
             sample = torch.nn.functional.pad(sample, (0,pad_len), "constant", 0)
         if self.transform is not None:
             sample = self.transform(sample)
-            self.pre_filter(path, sample, offset, target)
         if self.target_transform is not None:
             target = self.target_transform(target)
 

@@ -1,6 +1,11 @@
 import torch
 import random
 import torch.nn as nn
+import random
+import torchaudio
+import math
+import os
+import pathlib
 
 class FreqMask(nn.Module):
     def  __init__(self, max_mask_size_F=20, num_masks=1, replace_with_zero=False):
@@ -132,3 +137,59 @@ class ToDecibels(nn.Module):
                 # normalize to [0, 1]
                 spec_db.add_(self.top_db).div_(self.top_db)
         return spec_db
+
+
+class RandomSpeedChange:
+    def __init__(self, sample_rate):
+        self.sample_rate = sample_rate
+
+    def __call__(self, audio_data):
+        speed_factor = random.choice([0.9, 1.0, 1.1])
+        if speed_factor == 1.0: # no change
+            return audio_data
+
+        # change speed and resample to original rate:
+        sox_effects = [
+            ["speed", str(speed_factor)],
+            ["rate", str(self.sample_rate)],
+        ]
+        transformed_audio, _ = torchaudio.sox_effects.apply_effects_tensor(
+            audio_data, self.sample_rate, sox_effects)
+        return transformed_audio
+
+
+class RandomBackgroundNoise:
+    def __init__(self, sample_rate, noise_dir, min_snr_db=0, max_snr_db=0):
+        self.sample_rate = sample_rate
+        self.min_snr_db = min_snr_db
+        self.max_snr_db = max_snr_db
+
+        if not os.path.exists(noise_dir):
+            raise IOError(f'Noise directory `{noise_dir}` does not exist')
+        # find all WAV files including in sub-folders:
+        self.noise_files_list = list(pathlib.Path(noise_dir).glob('**/*.wav'))
+        if len(self.noise_files_list) == 0:
+            raise IOError(f'No .wav file found in the noise directory `{noise_dir}`')
+
+    def __call__(self, audio_data):
+        random_noise_file = random.choice(self.noise_files_list)
+        effects = [
+            ['remix', '1'], # convert to mono
+            ['rate', str(self.sample_rate)], # resample
+        ]
+        noise, _ = torchaudio.sox_effects.apply_effects_file(random_noise_file, effects, normalize=True)
+        audio_length = audio_data.shape[-1]
+        noise_length = noise.shape[-1]
+        if noise_length > audio_length:
+            offset = random.randint(0, noise_length-audio_length)
+            noise = noise[..., offset:offset+audio_length]
+        elif noise_length < audio_length:
+            noise = torch.cat([noise, torch.zeros((noise.shape[0], audio_length-noise_length))], dim=-1)
+
+        snr_db = random.randint(self.min_snr_db, self.max_snr_db)
+        snr = math.exp(snr_db / 10)
+        audio_power = audio_data.norm(p=2)
+        noise_power = noise.norm(p=2)
+        scale = snr * noise_power / audio_power
+
+        return (scale * audio_data + noise ) / 2
