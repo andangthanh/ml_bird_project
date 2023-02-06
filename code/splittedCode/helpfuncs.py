@@ -55,3 +55,23 @@ def accuracy_score_multi_label(pred, yb):
     pred_list = np.around(pred_list)
     true_list = [x.detach().cpu().numpy() for x in yb]
     return accuracy_score(true_list, pred_list)
+
+def f1_categorical(pred, yb):
+    pred_list = torch.argmax(pred,dim=1).detach().cpu().numpy()
+    true_list = yb.detach().cpu().numpy()
+    return f1_score(true_list, pred_list, average='micro', zero_division=1)
+
+def recall_categorical(pred, yb):
+    pred_list = torch.argmax(pred,dim=1).detach().cpu().numpy()
+    true_list = yb.detach().cpu().numpy()
+    return recall_score(true_list, pred_list, average='weighted', zero_division=1)
+
+def precision_categorical(pred, yb):
+    pred_list = torch.argmax(pred,dim=1).detach().cpu().numpy()
+    true_list = yb.detach().cpu().numpy()
+    return precision_score(true_list, pred_list, average='weighted', zero_division=1)
+
+def accuracy_categorical(pred, yb):
+    pred_list = torch.argmax(pred,dim=1).detach().cpu().numpy()
+    true_list = yb.detach().cpu().numpy()
+    return f1_score(true_list, pred_list)

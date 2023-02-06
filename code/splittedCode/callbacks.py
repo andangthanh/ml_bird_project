@@ -34,7 +34,7 @@ class UseCacheCallback(Callback):
 
 class TestInferenceCallback(Callback):
     _order = 20
-    def __init__(self, save_path, LEN_CLASSES, target_names, idx2class, model_class):
+    def __init__(self, save_path, LEN_CLASSES, target_names, idx2class, model_class, categorical):
         self.pred_list = []
         self.true_list = []
         self.save_path = save_path
@@ -42,6 +42,7 @@ class TestInferenceCallback(Callback):
         self.target_names = target_names
         self.idx2class = idx2class
         self.model_class = model_class
+        self.categorical = categorical
 
     def after_fit(self):
         print("TEST INFERENCE")
@@ -65,16 +66,24 @@ class TestInferenceCallback(Callback):
 
                 y_test_pred = model(xb)
 
-                y_pred_sig = torch.sigmoid(y_test_pred)
-                y_pred_sig = [x.detach().cpu().numpy() for x in y_pred_sig]
-                y_pred_tag = np.around(y_pred_sig)
+                if self.categorical:
+                    self.pred_list.append(torch.argmax(y_test_pred,dim=1).detach().cpu().numpy())
+                    self.true_list.append(yb.detach().cpu().numpy())
+                else:    
+                    y_pred_sig = torch.sigmoid(y_test_pred)
+                    y_pred_sig = [x.detach().cpu().numpy() for x in y_pred_sig]
+                    y_pred_tag = np.around(y_pred_sig)
 
-                y_test_tag = [x.detach().cpu().numpy() for x in yb]
-                self.pred_list.append(y_pred_tag)
-                self.true_list.append(y_test_tag)
-                    
-        self.pred_list = np.reshape(self.pred_list, (-1,  self.LEN_CLASSES))
-        self.true_list = np.reshape(self.true_list, (-1,  self.LEN_CLASSES))
+                    y_test_tag = [x.detach().cpu().numpy() for x in yb]
+                    self.pred_list.append(y_pred_tag)
+                    self.true_list.append(y_test_tag)
+        
+        if self.categorical:
+            self.pred_list = np.reshape(self.pred_list, (-1))
+            self.true_list = np.reshape(self.true_list, (-1))
+        else:                        
+            self.pred_list = np.reshape(self.pred_list, (-1,  self.LEN_CLASSES))
+            self.true_list = np.reshape(self.true_list, (-1,  self.LEN_CLASSES))
 
         f1 = f1_score(self.true_list, self.pred_list, average="weighted", zero_division=1)
         prec = precision_score(self.true_list, self.pred_list, average="weighted", zero_division=1)
