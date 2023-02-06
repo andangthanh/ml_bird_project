@@ -126,7 +126,10 @@ class TestInferenceCallback(Callback):
 
 
         # probably needs to be changed later or omitted
-        cm = confusion_matrix(np.argmax(self.true_list, axis=1), np.argmax(self.pred_list, axis=1))
+        if self.categorical:
+            cm = confusion_matrix(self.true_list, self.pred_list)
+        else:
+            cm = confusion_matrix(np.argmax(self.true_list, axis=1), np.argmax(self.pred_list, axis=1))
         confusion_matrix_df = pd.DataFrame(cm).rename(columns=self.idx2class, index=self.idx2class)
         fig, ax = plt.subplots(figsize=(12,12))         
         sns.heatmap(confusion_matrix_df, annot=True, ax=ax, fmt="d")
