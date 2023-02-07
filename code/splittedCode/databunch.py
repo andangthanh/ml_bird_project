@@ -513,6 +513,8 @@ class WholeAudioFolder(data.Dataset):
         dropped_classes=[],
         all_samples = False,
         num_samples_per_class = 2000,
+        num_frames_per_sample = 88064,
+        random_time_shift_frames = None,
         loader = torchaudio.load,
         extensions: Optional[Tuple[str, ...]] = AUDIO_EXTENSIONS,
         transforms: Optional[Callable] = None,
@@ -526,6 +528,8 @@ class WholeAudioFolder(data.Dataset):
         self.dropped_classes = dropped_classes
         self.all_samples = all_samples
         self.num_samples_per_class = num_samples_per_class
+        self.num_frames_per_sample = num_frames_per_sample
+        self.random_time_shift_frames = random_time_shift_frames
         has_transforms = transforms is not None
         has_separate_transform = transform is not None or target_transform is not None
         if has_transforms and has_separate_transform:
@@ -614,7 +618,7 @@ class WholeAudioFolder(data.Dataset):
                     if is_valid_file(path):
                         if target_class not in available_classes:
                             available_classes.add(target_class)
-                        offset_pos = self.sample_offset_pos(path, 88064)
+                        offset_pos = self.sample_offset_pos(path, self.num_frames_per_sample)
                         previous_num_samples = target_num_samples
                         target_num_samples += len(offset_pos)
                         if target_num_samples <= self.num_samples_per_class or self.all_samples:
@@ -663,9 +667,19 @@ class WholeAudioFolder(data.Dataset):
             tuple: (sample, target) where target is class_index of the target class.
         """
         path, target, offset = self.samples[index]
-        sample, sample_rate = self.loader(path, frame_offset=offset, num_frames=88064)
-        if sample.shape[1] < 88064:
-            pad_len = 88064 - sample.shape[1]
+        if self.random_time_shift_frames is not None:
+            left_shift = max(offset-self.random_time_shift_frames, 0)
+            if torchaudio.info(path).num_frames <= offset+self.random_time_shift_frames+1:
+                right_shift = offset
+            else:
+                right_shift = offset+self.random_time_shift_frames+1
+            if left_shift >= right_shift:
+                print("left_shift: ", left_shift, ", right_shift: ", right_shift)
+            else:
+                offset = int(random.randrange(left_shift, right_shift, self.random_time_shift_frames // 4))
+        sample, sample_rate = self.loader(path, frame_offset=offset, num_frames=self.num_frames_per_sample)
+        if sample.shape[1] < self.num_frames_per_sample:
+            pad_len = self.num_frames_per_sample - sample.shape[1]
             sample = torch.nn.functional.pad(sample, (0,pad_len), "constant", 0)
         if self.transform is not None:
             sample = self.transform(sample)
