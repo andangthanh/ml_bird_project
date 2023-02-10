@@ -6,6 +6,7 @@ import torchaudio
 import math
 import os
 import pathlib
+import numpy as np
 
 class FreqMask(nn.Module):
     def  __init__(self, max_mask_size_F=20, num_masks=1, replace_with_zero=False):
@@ -158,6 +159,25 @@ class RandomSpeedChange:
         return transformed_audio
 
 
+class RandomTempoChange:
+    def __init__(self, sample_rate):
+        self.sample_rate = sample_rate
+
+    def __call__(self, audio_data):
+        speed_factor = np.random.choice([0.8, 0.9, 1.0, 1.1, 1.2], p=[0.05, 0.1, 0.7, 0.1, 0.05])
+        if speed_factor == 1.0: # no change
+            return audio_data
+
+        # change speed and resample to original rate:
+        sox_effects = [
+            ["tempo", str(speed_factor)],
+            ["rate", str(self.sample_rate)],
+        ]
+        transformed_audio, _ = torchaudio.sox_effects.apply_effects_tensor(
+            audio_data, self.sample_rate, sox_effects)
+        return transformed_audio
+
+
 class RandomBackgroundNoise:
     def __init__(self, sample_rate, noise_dir, min_snr_db=0, max_snr_db=0):
         self.sample_rate = sample_rate
@@ -193,3 +213,32 @@ class RandomBackgroundNoise:
         scale = snr * noise_power / audio_power
 
         return (scale * audio_data + noise ) / 2
+
+import math
+def get_white_noise(signal,SNR) :
+    #RMS value of signal
+    RMS_s=math.sqrt(torch.mean(signal**2))
+    #RMS values of noise
+    RMS_n=math.sqrt(RMS_s**2/(pow(10,SNR/10)))
+    #Additive white gausian noise. Thereore mean=0
+    #Because sample length is large (typically > 40000)
+    #we can use the population formula for standard daviation.
+    #because mean=0 STD=RMS
+    STD_n=RMS_n
+    noise=torch.normal(mean=0.0, std=STD_n, size=signal.shape)
+    return noise
+
+class RandomGaussianNoise:
+    def __init__(self, min_snr_db=0, max_snr_db=70, p=0.8):
+        self.min_snr_db = min_snr_db
+        self.max_snr_db = max_snr_db
+        self.p = p
+
+    def __call__(self, audio_data):
+        
+        if torch.rand(1) < self.p:
+            snr_db = random.randint(self.min_snr_db, self.max_snr_db)
+            noise = get_white_noise(audio_data, snr_db)
+
+            return audio_data + noise
+        return audio_data

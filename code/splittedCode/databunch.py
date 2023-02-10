@@ -514,6 +514,7 @@ class WholeAudioFolder(data.Dataset):
         all_samples = False,
         num_samples_per_class = 2000,
         num_frames_per_sample = 88064,
+        balanced = False,
         random_time_shift_frames = None,
         loader = torchaudio.load,
         extensions: Optional[Tuple[str, ...]] = AUDIO_EXTENSIONS,
@@ -529,6 +530,7 @@ class WholeAudioFolder(data.Dataset):
         self.all_samples = all_samples
         self.num_samples_per_class = num_samples_per_class
         self.num_frames_per_sample = num_frames_per_sample
+        self.balanced = balanced
         self.random_time_shift_frames = random_time_shift_frames
         has_transforms = transforms is not None
         has_separate_transform = transform is not None or target_transform is not None
@@ -631,7 +633,7 @@ class WholeAudioFolder(data.Dataset):
                         break
                 if break_flag:
                     break
-            if target_num_samples < self.num_samples_per_class and self.all_samples == False:
+            if target_num_samples < self.num_samples_per_class and self.all_samples == False and self.balanced == True:
                 num_duplicates = self.num_samples_per_class - target_num_samples
                 instances.extend(random.choices(instances[-target_num_samples:],k=num_duplicates))
             class_idx_to_indices[class_index] = [starting_idx_of_current_class, len(instances)-1]
@@ -674,7 +676,7 @@ class WholeAudioFolder(data.Dataset):
             else:
                 right_shift = offset+self.random_time_shift_frames+1
             if left_shift >= right_shift:
-                print("left_shift: ", left_shift, ", right_shift: ", right_shift)
+                pass
             else:
                 offset = int(random.randrange(left_shift, right_shift, self.random_time_shift_frames // 4))
         sample, sample_rate = self.loader(path, frame_offset=offset, num_frames=self.num_frames_per_sample)

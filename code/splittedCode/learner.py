@@ -9,19 +9,22 @@ import random
 from datetime import datetime
 import torch.distributed as dist
 
-def create_BirdNET(n_classes, lr=0.01):
+def create_BirdNET(n_classes, lr=0.01, sgd=False, momentum=0.9, weight_decay=0):
     """Creates model, optimizer"""
 
     model = BirdNET(n_classes)
     model.to(device)
     model.cuda()
     
-    optimizer = optim.AdamW(model.parameters(), lr=lr)
+    if sgd == True:
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+    else:
+        optimizer = optim.AdamW(model.parameters(), lr=lr)
     
     return model, optimizer
 
 
-def ddp_create_BirdNET(n_classes, lr=0.01, args=None):
+def ddp_create_BirdNET(n_classes, lr=0.01, args=None, sgd=False, momentum=0.9, weight_decay=0):
     """Creates model, optimizer"""
 
     model = BirdNET(n_classes)
@@ -30,25 +33,30 @@ def ddp_create_BirdNET(n_classes, lr=0.01, args=None):
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
     #model_without_ddp = model.module
 
-    
-    optimizer = optim.AdamW(model.parameters(), lr=lr)
+    if sgd == True:
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+    else:
+        optimizer = optim.AdamW(model.parameters(), lr=lr)
     
     return model, optimizer
 
 
-def create_ResNet50(n_classes, lr=0.01, pretrained=True):
+def create_ResNet50(n_classes, lr=0.01, pretrained=True, sgd=False, momentum=0.9, weight_decay=0):
     """Creates model, optimizer"""
 
     model = ResNet50(n_classes, pretrained)
     model.to(device)
     model.cuda()
     
-    optimizer = optim.AdamW(model.parameters(), lr=lr)
+    if sgd == True:
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+    else:
+        optimizer = optim.AdamW(model.parameters(), lr=lr)
     
     return model, optimizer
 
 
-def ddp_create_ResNet50(n_classes, lr=0.01, pretrained=True, args=None):
+def ddp_create_ResNet50(n_classes, lr=0.01, pretrained=True, args=None, sgd=False, momentum=0.9, weight_decay=0):
     """Creates model, optimizer"""
 
     model = ResNet50(n_classes, pretrained)
@@ -56,8 +64,11 @@ def ddp_create_ResNet50(n_classes, lr=0.01, pretrained=True, args=None):
     model.cuda(args.gpu)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
     #model_without_ddp = model.module
-    
-    optimizer = optim.AdamW(model.parameters(), lr=lr)
+
+    if sgd == True:
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+    else:
+        optimizer = optim.AdamW(model.parameters(), lr=lr)
     
     return model, optimizer
 

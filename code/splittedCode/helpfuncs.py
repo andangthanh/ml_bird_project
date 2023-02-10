@@ -29,31 +29,31 @@ def macro_metric_multi_label(metric, pred, yb):
     return classification_report(true_list, pred_list, output_dict=True)['macro avg'][metric]
 
 def f1_score_multi_label(pred, yb):
-    pred = torch.sigmoid(pred)
-    pred_list = [x.detach().cpu().numpy() for x in pred]
+    pred_list = torch.sigmoid(pred)
+    pred_list = pred_list.numpy()
     pred_list = np.around(pred_list)
-    true_list = [x.detach().cpu().numpy() for x in yb]
-    return f1_score(true_list, pred_list, average='weighted', zero_division=1)
+    true_list = yb.numpy()
+    return f1_score(true_list, pred_list, average='micro', zero_division=1)
 
 def recall_score_multi_label(pred, yb):
-    pred = torch.sigmoid(pred)
-    pred_list = [x.detach().cpu().numpy() for x in pred]
+    pred_list = torch.sigmoid(pred)
+    pred_list = pred_list.numpy()
     pred_list = np.around(pred_list)
-    true_list = [x.detach().cpu().numpy() for x in yb]
-    return recall_score(true_list, pred_list, average='weighted', zero_division=1)
+    true_list = yb.numpy()
+    return recall_score(true_list, pred_list, average='micro', zero_division=1)
 
 def precision_score_multi_label(pred, yb):
-    pred = torch.sigmoid(pred)
-    pred_list = [x.detach().cpu().numpy() for x in pred]
+    pred_list = torch.sigmoid(pred)
+    pred_list = pred_list.numpy()
     pred_list = np.around(pred_list)
-    true_list = [x.detach().cpu().numpy() for x in yb]
-    return precision_score(true_list, pred_list, average='weighted', zero_division=1)
+    true_list = yb.numpy()
+    return precision_score(true_list, pred_list, average='micro', zero_division=1)
 
 def accuracy_score_multi_label(pred, yb):
-    pred = torch.sigmoid(pred)
-    pred_list = [x.detach().cpu().numpy() for x in pred]
+    pred_list = torch.sigmoid(pred)
+    pred_list = pred_list.numpy()
     pred_list = np.around(pred_list)
-    true_list = [x.detach().cpu().numpy() for x in yb]
+    true_list = yb.numpy()
     return accuracy_score(true_list, pred_list)
 
 def f1_categorical(pred, yb):
